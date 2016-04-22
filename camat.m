@@ -65,7 +65,7 @@ function varargout = camat_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.results;
+% varargout{1} = handles.results;
 
 
 % UIWAIT makes camat wait for user response (see UIRESUME)
@@ -363,7 +363,7 @@ function Untitled_1_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function imstd=Untitled_3_Callback(hObject, eventdata, handles)
-data=lsmopen;
+[data,dt]=lsmopen;
 imstd=zeros(size(data,1),size(data,2));                                                                                                                 
 for i=1:size(data,1)                                                
     % In each column of each row
@@ -376,6 +376,9 @@ axes(handles.axes3)
 imagesc(imstd);
 axis image;
 axis off;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
 
 handles.imstd=imstd;
 handles.data=data;
