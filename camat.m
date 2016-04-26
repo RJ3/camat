@@ -373,6 +373,7 @@ for i=1:size(data,1)
     end
 end
 axes(handles.axes3) 
+hold off
 imagesc(imstd);
 axis image;
 axis off;
