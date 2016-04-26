@@ -377,11 +377,15 @@ imagesc(imstd);
 axis image;
 axis off;
 
+fps=1/dt;
+
 set(handles.text23,'String',num2str(dt));
 set(handles.text24,'String',num2str(1/dt));
 
 handles.imstd=imstd;
 handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
 guidata(hObject,handles)
 
 return
@@ -414,13 +418,13 @@ guidata(hObject,handles);
 
 %% --- Executes on button press in Region Selector OK button
 function pushbutton3_Callback(hObject, eventdata, handles)
-
 data=handles.data;
 imstd=handles.imstd;
 gr=handles.gr;
 gc=handles.gc;
 pr=str2double(handles.edit9.String);
 pc=str2double(handles.edit8.String);
+dt=handles.dt;
 
 % Find all the indices where the the previous is less than the txt_maxrad
 maxrad=str2double(handles.txt_maxrad.String);
@@ -435,14 +439,14 @@ for i=1:length(radi)
     avesig=avesig+pixsig;                                                   
 end
 
-dt=0.01; %% HARD CODED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-fps=1/dt;
-time=(1:length(avesig))*dt;
+time=0:dt:length(avesig)*dt-dt;
 
 axes(handles.axes1) 
+hold off
 plot(time,avesig);
 xlabel('Time (s)')
 ylabel('Fluorescence (AU)');
+set(handles.radiobutton10,'Value',1);
 
 
 axes(handles.axes3)
@@ -452,8 +456,6 @@ plot(gc(radi), gr(radi), 'k.');
 axis image
 
 % Exporting variables
-handles.dt=dt;
-handles.fps=fps;
 handles.time=time;
 handles.avesig=avesig;
 guidata(hObject,handles);
@@ -614,9 +616,10 @@ imin2=sort(imin,'ascend');
 %% Normalize the signal for 100% and 30% calculations
 allpoints=sort(avesig);
 nump=length(allpoints);
-bottom=floor(nump*0.60); % this was 0.35 before
+bottom=floor(nump*0.35); % this was 0.35 before
 maximum=mean(allpoints(end-20:end));
-minimum=mean(allpoints(1:bottom));
+% minimum=mean(allpoints(1:bottom));
+minimum=mean(avesig(1:t0_locs(1)));
 
 axes(handles.axes1)
 hold off
@@ -760,28 +763,31 @@ plot(time(lp2:locbase),avesig(lp2:locbase),'o');
 hold on
 plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
 
-%% Results Cell
+%% Results Cell for single file analysis
 
-filenum=1;
-results(trans,1,filenum)=depV(trans);
-results(trans,2,filenum)=(time(locpk)-time(loct0));
-results(trans,3,filenum)=(1/kFall)*1000;
-results(trans,4,filenum)=(time(lp2)-time(loct0)); % CaD30
-results(trans,5,filenum)=(time(cad50_end)-time(loct0)); % CaD50
-results(trans,6,filenum)=(time(cad90_end)-time(loct0)); % CaD90
+results(trans,1)=depV(trans);
+results(trans,2)=(time(locpk)-time(loct0));
+results(trans,3)=(1/kFall)*1000;
+results(trans,4)=(time(lp2)-time(loct0)); % CaD30
+results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
+results(trans,6)=(time(cad90_end)-time(loct0)); % CaD90
 
-results(trans,7,filenum)=avesig(locpk);
-results(trans,8,filenum)=avesig(locbase);
-results(trans,9,filenum)=avesig(locpk)/avesig(locbase);
+results(trans,7)=avesig(locpk);
+results(trans,8)=avesig(locbase);
+results(trans,9)=avesig(locpk)/avesig(locbase);
+
+results(trans,10)=time(locsa(lp+1))-time(locpk);
+
+Rtab=array2table(results,'VariableNames',{'MaxVel','TTP','TauFall','CaD30','CaD50','CaD90','F1','F0','F1F0','PeakTimeDiff'});
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
-disp(['Finished ',num2str(filenum)]);
-
 handles.results=results;
+handles.Rtab=Rtab;
 guidata(hObject,handles);
+
 
 function txt_maxrad_Callback(hObject, eventdata, handles)
 
@@ -834,6 +840,17 @@ end
 
 % --- Executes on button press in pushbutton8. EPOCH SELECTOR BUTTON
 function pushbutton8_Callback(hObject, eventdata, handles)
+% Make sure you plot in Frames first, before you pick the epoch.
+avesig=handles.avesig;
+time=1:1:length(avesig);
+axes(handles.axes1)
+hold off
+plot(time,avesig)
+xlab='Frames';
+xlabel(xlab)
+ylabel('Fluorescence (AU)');
+set(handles.radiobutton11,'Value',1);
+
 [pt,~]=ginput(2);                                                                                                                                 
 pt1=round(pt(1));                                                                                                                                       
 pt2=round(pt(2));
@@ -854,6 +871,10 @@ epoch=avesig(pt1:pt2);
 axes(handles.axes1)
 hold off
 plot(time(pt1:pt2),epoch)
+xlabel('Time (sec)')
+ylabel('Fluorescence (AU)');
+set(handles.radiobutton10,'Value',1);
+
 
 handles.avesig=epoch;
 handles.time=time(pt1:pt2);
@@ -861,8 +882,10 @@ guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton10. Open Results Variable
 function pushbutton10_Callback(hObject, eventdata, handles)
-results=handles.results;
-openvar('results')
+Rtab=handles.Rtab;
+assignin('base','Rtab',Rtab)
+openvar('Rtab')
+
 % hObject    handle to pushbutton10 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
