@@ -426,7 +426,7 @@ pr=str2double(handles.edit9.String);
 pc=str2double(handles.edit8.String);
 dt=handles.dt;
 
-% Find all the indices where the the previous is less than the txt_maxrad
+% Find all the indices where the previous is less than the txt_maxrad
 maxrad=str2double(handles.txt_maxrad.String);
 rad=sqrt((gr-pr).^2 + (gc-pc).^2);
 radi=find(rad<=maxrad); 
@@ -438,6 +438,9 @@ for i=1:length(radi)
     % Add the avesid and pix sig.
     avesig=avesig+pixsig;                                                   
 end
+
+% divide each avesig by the length of radi.
+avesig=avesig./length(radi);
 
 time=0:dt:length(avesig)*dt-dt;
 
