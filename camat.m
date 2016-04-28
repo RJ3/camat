@@ -749,7 +749,7 @@ Tpre=(lp2:locbase)'-lp2;
 T=linspace(0,length(Tpre)*(1/fps),length(Tpre))';
 
 downstroke = @(params,T) params(1).*(exp(-params(3).*T))+params(2);
-x0 = [100; 200; 0]; % Old Camera
+x0 = [25; 100; 1]; % Old Camera
 % x0 = [200; 3000; 10]; % New Camera
 options=optimset('Display','off','MaxFunEvals', 10000,'MaxIter',10000,...
     'Algorithm','levenberg-marquardt');
