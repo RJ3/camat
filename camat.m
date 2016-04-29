@@ -595,7 +595,7 @@ thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
 avesig_partialsmooth=double(avesig);
-avesig_partialsmooth=smooth(avesig_partialsmooth,10,'sgolay',1);
+avesig_partialsmooth=smooth(avesig_partialsmooth,3,'sgolay',1);
 
 amp=thres*max(avesig_partialsmooth);
 
@@ -603,7 +603,7 @@ amp=thres*max(avesig_partialsmooth);
 grad=gradient(avesig_partialsmooth);
 % Find the peaks in the 2nd derivative, these correspond to the beginning
 % of the upstrokes (t0);
-[~,t0_locs] = findpeaks3(gradient(smooth(grad)),'MINPEAKHEIGHT',0.4*max(gradient(grad)),...
+[~,t0_locs] = findpeaks3(gradient(smooth(grad)),'MINPEAKHEIGHT',0.3*max(gradient(grad)),...
     'MINPEAKDISTANCE',mpd);
 
 % Find the maxima of the smoothed averaged signal
@@ -620,10 +620,10 @@ imin2=sort(imin,'ascend');
 %% Normalize the signal for 100% and 30% calculations
 allpoints=sort(avesig);
 nump=length(allpoints);
-bottom=floor(nump*0.35); % this was 0.35 before
+bottom=floor(nump*0.50); % this was 0.35 before
 maximum=mean(allpoints(end-20:end));
-% minimum=mean(allpoints(1:bottom));
-minimum=mean(avesig(1:t0_locs(1)));
+minimum=mean(allpoints(1:bottom));
+% minimum=mean(avesig(1:t0_locs(1)));
 
 axes(handles.axes1)
 hold off
@@ -782,7 +782,7 @@ results(trans,9)=avesig(locpk)/avesig(locbase);
 
 results(trans,10)=time(locsa(lp+1))-time(locpk);
 
-Rtab=array2table(results,'VariableNames',{'MaxVel','TTP','TauFall','CaD30','CaD50','CaD90','F1','F0','F1F0','PeakTimeDiff'});
+Rtab=array2table(results,'VariableNames',{'MaxVel','TTP','TauFall','CaD30','CaD50','CaD80','F1','F0','F1F0','PeakTimeDiff'});
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0

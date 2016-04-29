@@ -6,7 +6,7 @@ function [data,dt]=lsmopen
 
 addpath(genpath('dependencies'))
 % fname='/run/media/data/Data/Probenecid study/Frame Scan - calcium/exp119-control20xdifffreq.lsm';
-[fname,pname]=uigetfile({'*.lsm'},'Select a Zeiss .lsm file','/run/media/data/Data/Probenecid study/');
+[fname,pname]=uigetfile({'*.lsm'},'Select a Zeiss .lsm file','/run/media/data/Data/');
 header = bfopen([pname,fname]);
 first=header{1,1}(1,1);
 nframes=length(header{1,1}(:,1));
