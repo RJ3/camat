@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 22-Apr-2016 16:23:05
+% Last Modified by GUIDE v2.5 29-Apr-2016 09:23:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -946,3 +946,34 @@ function pushbutton11_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton11 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function Untitled_5_Callback(hObject, eventdata, handles)
+[data,dt]=nd2open;
+imstd=zeros(size(data,1),size(data,2));                                                                                                                 
+for i=1:size(data,1)                                                
+    % In each column of each row
+    for j=1:size(data,2)                                                                                                                                   
+    % That point equals the standard deviation of all the frames in that same column and row index
+    imstd(i,j)=std(data(i,j,:));                                                                                                                         
+    end
+end
+axes(handles.axes3) 
+hold off
+imagesc(imstd);
+axis image;
+axis off;
+
+fps=1/dt;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+guidata(hObject,handles)
+
+return
