@@ -1,6 +1,6 @@
 function [data,dt]=lsmopen
 
-% LSM 510 READER
+% Zeiss LSM 510 READER
 % Rafael Jaimes, PhD
 % 2016-04-05
 
@@ -22,13 +22,3 @@ for p=1:nframes
     predata=header{1,1}(p,1);
     data(:,:,p)=predata{1,1};
 end
-
-
-% Use this to watch a video.
-% for p=1:header.TIMESTACKSIZE
-%     imagesc(data(:,:,p))
-%     title(['Frame', num2str(p) ,'of', num2str(header.TIMESTACKSIZE)])
-%     axis image
-%     title(['Frame ', num2str(p) ,'of ', num2str(header.TIMESTACKSIZE)])
-%     pause(0)
-% end
