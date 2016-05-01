@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 29-Apr-2016 09:23:04
+% Last Modified by GUIDE v2.5 29-Apr-2016 16:50:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
