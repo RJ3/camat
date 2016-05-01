@@ -601,9 +601,12 @@ amp=thres*max(avesig_partialsmooth);
 
 % Determine the gradient of the smoothed signal for the t0 and max dep vel
 grad=gradient(avesig_partialsmooth);
+grad2=gradient(grad);
+
+
 % Find the peaks in the 2nd derivative, these correspond to the beginning
 % of the upstrokes (t0);
-[~,t0_locs] = findpeaks3(gradient(smooth(grad)),'MINPEAKHEIGHT',0.3*max(gradient(grad)),...
+[~,t0_locs] = findpeaks3(grad2,'MINPEAKHEIGHT',mean(grad2)+std(grad2),...
     'MINPEAKDISTANCE',mpd);
 
 % Find the maxima of the smoothed averaged signal
@@ -615,14 +618,17 @@ grad=gradient(avesig_partialsmooth);
 imin2=sort(imin,'ascend');
 
 % Find the peaks ~ corresponds to upstroke and max dep vel
-[depV,upstroke_locs] = findpeaks3(grad,'MINPEAKHEIGHT',0.4*max(grad),'MINPEAKDISTANCE',mpd);
+[depV,upstroke_locs] = findpeaks3(grad,'MINPEAKHEIGHT',mean(grad)+std(grad),'MINPEAKDISTANCE',mpd);
 
 %% Normalize the signal for 100% and 30% calculations
-allpoints=sort(avesig);
-nump=length(allpoints);
-bottom=floor(nump*0.50); % this was 0.35 before
-maximum=mean(allpoints(end-20:end));
-minimum=mean(allpoints(1:bottom));
+allpoints=sort(avesig(t0_locs(1):end));
+% nump=length(allpoints);
+maximum=mean(allpoints)+std(allpoints);
+minimum=mean(allpoints)-std(allpoints);
+
+% bottom=floor(nump*0.50); % this was 0.35 before
+% maximum=mean(allpoints(end-20:end));
+% minimum=mean(allpoints(1:bottom));
 % minimum=mean(avesig(1:t0_locs(1)));
 
 axes(handles.axes1)
@@ -713,10 +719,11 @@ end
 %Average the last 3 points to compensate for noise in the baseline
 % avg_base=mean([avesig(locbase) avesig(locbase-1) avesig(locbase-3)]);
 normalized=(avesig(locpk:locbase)-avesig(locbase))/(avesig(locpk)-avesig(locbase));
+normSmooth=smooth(normalized,3,'sgolay',2);
 
-[cad50_endpre,~]=find(normalized<=0.495,1,'first');
-[cad90_endpre,~]=find(normalized<=0.195,1,'first'); %Cad80 or 90
-[lp2pre,~]=find(normalized<=0.695,1,'first');
+[cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
+[cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80 or 90
+[lp2pre,~]=find(normSmooth<=0.695,1,'first');
 
 cad50_end=cad50_endpre+locpk;
 cad90_end=cad90_endpre+locpk;
