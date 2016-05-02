@@ -1,4 +1,4 @@
-function [data,dt]=lsmopen
+function [data,dt,fname]=lsmopen
 
 % Zeiss LSM 510 READER
 % Rafael Jaimes, PhD

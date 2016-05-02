@@ -363,7 +363,7 @@ function Untitled_1_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function imstd=Untitled_3_Callback(hObject, eventdata, handles)
-[data,dt]=lsmopen;
+[data,dt,fname]=lsmopen;
 imstd=zeros(size(data,1),size(data,2));                                                                                                                 
 for i=1:size(data,1)                                                
     % In each column of each row
@@ -382,6 +382,7 @@ fps=1/dt;
 
 set(handles.text23,'String',num2str(dt));
 set(handles.text24,'String',num2str(1/dt));
+set(handles.text25,'String',fname);
 
 handles.imstd=imstd;
 handles.data=data;
@@ -624,7 +625,7 @@ imin2=sort(imin,'ascend');
 allpoints=sort(avesig(t0_locs(1):end));
 % nump=length(allpoints);
 maximum=mean(allpoints)+std(allpoints);
-minimum=mean(allpoints)-std(allpoints);
+minimum=mean(allpoints)-0.5*std(allpoints);
 
 % bottom=floor(nump*0.50); % this was 0.35 before
 % maximum=mean(allpoints(end-20:end));
@@ -670,6 +671,13 @@ time=handles.time;
 fps=handles.fps;
 minimum=handles.minimum;
 maximum=handles.maximum;
+
+% F0 for whole epoch
+F0=mean(avesig(1:t0_locs(1)));
+F0_line=linspace(F0, F0, length(avesig(1:t0_locs(1))));
+axes(handles.axes1)
+hold on
+plot(time(1:t0_locs(1)),F0_line,'r')
 
 % Loops for finding points
 trans=1;
@@ -721,6 +729,10 @@ end
 normalized=(avesig(locpk:locbase)-avesig(locbase))/(avesig(locpk)-avesig(locbase));
 normSmooth=smooth(normalized,3,'sgolay',2);
 
+% design butterworth and apply
+% [b,a]=butter(15,50/(fps/2),'low');
+% normSmooth=filtfilt(b,a,normalized);
+
 [cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
 [cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80 or 90
 [lp2pre,~]=find(normSmooth<=0.695,1,'first');
@@ -728,6 +740,12 @@ normSmooth=smooth(normalized,3,'sgolay',2);
 cad50_end=cad50_endpre+locpk;
 cad90_end=cad90_endpre+locpk;
 lp2=lp2pre+locpk;
+
+% Find the 90% upstroke point
+normUpstroke=(avesig(loct0:locpk)-avesig(loct0))/(avesig(locpk)-avesig(loct0));
+[loc90pre,~]=find(normUpstroke>=0.895,1,'first');
+loc90=loc90pre+loct0;
+
 
 %% Plotting
 % Plot the points of interest
@@ -737,6 +755,8 @@ hold on
 plot(time(loct0),avesig(loct0),'m^','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
 % Plot the Initialize Upstroke Point
 plot(time(locup),avesig(locup),'ro','Markersize',8,'MarkerFaceColor','c','MarkerEdgeColor','k');
+% plot the 90% upstroke point
+plot(time(loc90),avesig(loc90),'m^','MarkerSize',8,'MarkerFaceColor','k','MarkerEdgeColor','k');
 % Plot the Peak Point
 plot(time(locpk),avesig(locpk),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
 % plot(time(lp1),avesig(lp1),'m^','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','m');
@@ -774,26 +794,35 @@ plot(time(lp2:locbase),avesig(lp2:locbase),'o');
 hold on
 plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
 
+
 %% Results Cell for single file analysis
 
 results(trans,1)=depV(trans);
-results(trans,2)=(time(locpk)-time(loct0));
+results(trans,2)=(time(loc90)-time(loct0))*1000;
 results(trans,3)=(1/kFall)*1000;
 results(trans,4)=(time(lp2)-time(loct0)); % CaD30
-results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
-results(trans,6)=(time(cad90_end)-time(loct0)); % CaD90
+% results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
+results(trans,5)=(time(cad90_end)-time(loct0)); % CaD90 or 80 (check above)
+results(trans,6)=(time(lp2)-time(loct0))./(time(cad90_end)-time(loct0));
 
-results(trans,7)=avesig(locpk);
-results(trans,8)=avesig(locbase);
-results(trans,9)=avesig(locpk)/avesig(locbase);
+% results(trans,7)=avesig(locpk);
+results(trans,7)=avesig(locbase)/F0; %Diastolic
+results(trans,8)=avesig(locpk)/F0; %Systolic
 
-results(trans,10)=time(locsa(lp+1))-time(locpk);
+results(trans,9)=time(locsa(lp+1))-time(locpk);
 
-Rtab=array2table(results,'VariableNames',{'MaxVel','TTP','TauFall','CaD30','CaD50','CaD80','F1','F0','F1F0','PeakTimeDiff'});
+% Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
+
+summary(1,:)=mean(results,1);
+
+summary(1,10)=results(1,7); % First Diastolic / F0
+summary(1,11)=results(end,7); % Last Diastolic / F0
+
+Rtab=array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
 
 handles.results=results;
 handles.Rtab=Rtab;
@@ -805,7 +834,7 @@ function txt_maxrad_Callback(hObject, eventdata, handles)
 
 
 function edit12_Callback(hObject, eventdata, handles)
-% hObject    handle to edit12 (see GCBO)
+% hObject    handle to edit12 (see GCBO)mean
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
