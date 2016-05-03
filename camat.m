@@ -811,20 +811,22 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 
 results(trans,9)=time(locsa(lp+1))-time(locpk);
 
-% Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
-
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
-summary(1,:)=mean(results,1);
+Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
 
-summary(1,10)=results(1,7); % First Diastolic / F0
-summary(1,11)=results(end,7); % Last Diastolic / F0
 
-Rtab=array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
 
-handles.results=results;
+% summary(1,:)=mean(results,1);
+
+% summary(1,10)=results(1,7); % First Diastolic / F0
+% summary(1,11)=results(end,7); % Last Diastolic / F0
+
+% Rtab=array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
+
+% handles.results=results;
 handles.Rtab=Rtab;
 guidata(hObject,handles);
 
