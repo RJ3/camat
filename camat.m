@@ -815,6 +815,8 @@ trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
+results(trans,:)=mean(results(:,:));
+
 Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
 
 
