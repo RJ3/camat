@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 29-Apr-2016 16:50:48
+% Last Modified by GUIDE v2.5 14-Nov-2016 18:54:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -987,7 +987,6 @@ function pushbutton11_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 % --------------------------------------------------------------------
 function Untitled_5_Callback(hObject, eventdata, handles)
 [data,dt]=nd2open;
@@ -1014,6 +1013,33 @@ handles.imstd=imstd;
 handles.data=data;
 handles.dt=dt;
 handles.fps=fps;
+guidata(hObject,handles)
+
+% --------------------------------------------------------------------
+function Untitled_6_Callback(hObject, eventdata, handles)
+[trace,dt]=txtopen;
+
+fps=1/dt;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+
+avesig=trace;
+
+time=0:dt:length(avesig)*dt-dt;
+
+axes(handles.axes1) 
+hold off
+plot(time,avesig);
+xlabel('Time (s)')
+ylabel('Fluorescence (AU)');
+set(handles.radiobutton10,'Value',1);
+
+
+handles.fps=fps;
+handles.dt=dt;
+handles.avesig=avesig;
+handles.time=time;
 guidata(hObject,handles)
 
 return
