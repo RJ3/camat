@@ -1,4 +1,4 @@
-function [ret, data3, fps, gain]=sifopen(source)
+function [ret, data3, fps, gain]=sifopen
 %{
 [ret, data, fps, gain]=sifopen99(source) where source is a string 
 containing Andor .sif file name ret will return 0 if error occurs, 1 if ok. 
@@ -12,6 +12,10 @@ IN YOUR SET DIRECTORY FOR 32-BIT AND 64-BIT VERSIONS OF MATLAB RESPECTIVELY
 
 Rafael Jaimes III 2012-11-11 ver 1.0
 %}
+addpath(genpath('dependencies'))
+[fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file');
+
+source=[pname,fname];
 
 rc=atsif_readfromfile(source);
 if (rc == 22002)

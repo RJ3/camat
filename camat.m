@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 14-Nov-2016 18:54:58
+% Last Modified by GUIDE v2.5 23-Dec-2016 16:35:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -494,12 +494,34 @@ handles.time=time;
 handles.xlab=xlab;
 guidata(hObject,handles);
 
-% --------------------------------------------------------------------
+% ----------------ANDOR SIF OPEN-------------------------------------------
 function Untitled_4_Callback(hObject, eventdata, handles)
-% hObject    handle to Untitled_4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
+[~, data, fps, ~]=sifopen;
+dt=1/fps;
+
+imstd=zeros(size(data,1),size(data,2));                                                                                                                 
+for i=1:size(data,1)                                                
+    % In each column of each row
+    for j=1:size(data,2)                                                                                                                                   
+    % That point equals the standard deviation of all the frames in that same column and row index
+    imstd(i,j)=std(data(i,j,:));                                                                                                                         
+    end
+end
+axes(handles.axes3) 
+hold off
+imagesc(imstd);
+axis image;
+axis off;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+guidata(hObject,handles)
 
 % --------------------------------------------------------------------
 function Test_Callback(hObject, eventdata, handles)
@@ -1043,3 +1065,18 @@ handles.time=time;
 guidata(hObject,handles)
 
 return
+
+
+% --- Executes on button press in radiobutton19. Signal inversion for
+% voltage
+function radiobutton19_Callback(hObject, eventdata, handles)
+
+avesig=handles.avesig;
+handles.avesig=-avesig+abs(max(avesig));
+guidata(hObject,handles);
+
+% hObject    handle to radiobutton19 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton19
