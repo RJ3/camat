@@ -1,4 +1,4 @@
-function [ret, data3, fps, gain]=sifopen99(source)
+function [ret, data3, fps, gain]=sifopen(source)
 %{
 [ret, data, fps, gain]=sifopen99(source) where source is a string 
 containing Andor .sif file name ret will return 0 if error occurs, 1 if ok. 
