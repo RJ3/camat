@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 03-Jan-2017 13:11:27
+% Last Modified by GUIDE v2.5 03-Jan-2017 13:41:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -494,34 +494,12 @@ handles.time=time;
 handles.xlab=xlab;
 guidata(hObject,handles);
 
-% ----------------ANDOR SIF OPEN-------------------------------------------
+% --------------------------------------------------------------------
 function Untitled_4_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
-[~, data, fps, ~]=sifopen;
-dt=1/fps;
-
-imstd=zeros(size(data,1),size(data,2));                                                                                                                 
-for i=1:size(data,1)                                                
-    % In each column of each row
-    for j=1:size(data,2)                                                                                                                                   
-    % That point equals the standard deviation of all the frames in that same column and row index
-    imstd(i,j)=std(data(i,j,:));                                                                                                                         
-    end
-end
-axes(handles.axes3) 
-hold off
-imagesc(imstd);
-axis image;
-axis off;
-
-set(handles.text23,'String',num2str(dt));
-set(handles.text24,'String',num2str(1/dt));
-
-handles.imstd=imstd;
-handles.data=data;
-handles.dt=dt;
-handles.fps=fps;
-guidata(hObject,handles)
 
 % --------------------------------------------------------------------
 function Test_Callback(hObject, eventdata, handles)
@@ -833,24 +811,20 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 
 results(trans,9)=time(locsa(lp+1))-time(locpk);
 
+% Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
+
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
-results(trans,:)=mean(results(:,:));
+summary(1,:)=mean(results,1);
 
-Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
+summary(1,10)=results(1,7); % First Diastolic / F0
+summary(1,11)=results(end,7); % Last Diastolic / F0
 
+Rtab=array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
 
-
-% summary(1,:)=mean(results,1);
-
-% summary(1,10)=results(1,7); % First Diastolic / F0
-% summary(1,11)=results(end,7); % Last Diastolic / F0
-
-% Rtab=array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
-
-% handles.results=results;
+handles.results=results;
 handles.Rtab=Rtab;
 guidata(hObject,handles);
 
@@ -1003,12 +977,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in pushbutton11.
-function pushbutton11_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton11 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 % --------------------------------------------------------------------
 function Untitled_5_Callback(hObject, eventdata, handles)
 [data,dt]=nd2open;
@@ -1037,119 +1005,12 @@ handles.dt=dt;
 handles.fps=fps;
 guidata(hObject,handles)
 
-% --------------------------------------------------------------------
-function Untitled_6_Callback(hObject, eventdata, handles)
-[trace,dt]=txtopen;
-
-fps=1/dt;
-
-set(handles.text23,'String',num2str(dt));
-set(handles.text24,'String',num2str(1/dt));
-
-avesig=trace;
-
-time=0:dt:length(avesig)*dt-dt;
-
-axes(handles.axes1) 
-hold off
-plot(time,avesig);
-xlabel('Time (s)')
-ylabel('Fluorescence (AU)');
-set(handles.radiobutton10,'Value',1);
-
-
-handles.fps=fps;
-handles.dt=dt;
-handles.avesig=avesig;
-handles.time=time;
-guidata(hObject,handles)
-
 return
 
 
 % --------------------------------------------------------------------
-function mode_selector_Callback(hObject, eventdata, handles)
-% hObject    handle to mode_selector (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function mode_calcium_Callback(hObject, eventdata, handles)
-% hObject    handle to mode_calcium (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function mode_voltage_Callback(hObject, eventdata, handles)
-% hObject    handle to mode_voltage (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function advanced_Callback(hObject, eventdata, handles)
-% hObject    handle to advanced (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
 function measurement_settings_Callback(hObject, eventdata, handles)
+childsettings
 % hObject    handle to measurement_settings (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function fitting_settings_Callback(hObject, eventdata, handles)
-% hObject    handle to fitting_settings (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on selection change in popupmenu1.
-function popupmenu1_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu1
-
-
-% --- Executes during object creation, after setting all properties.
-function popupmenu1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in popupmenu2.
-function popupmenu2_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu2
-
-
-% --- Executes during object creation, after setting all properties.
-function popupmenu2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
