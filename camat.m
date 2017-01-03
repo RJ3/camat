@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 23-Dec-2016 16:35:34
+% Last Modified by GUIDE v2.5 03-Jan-2017 13:11:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1067,16 +1067,89 @@ guidata(hObject,handles)
 return
 
 
-% --- Executes on button press in radiobutton19. Signal inversion for
-% voltage
-function radiobutton19_Callback(hObject, eventdata, handles)
-
-avesig=handles.avesig;
-handles.avesig=-avesig+abs(max(avesig));
-guidata(hObject,handles);
-
-% hObject    handle to radiobutton19 (see GCBO)
+% --------------------------------------------------------------------
+function mode_selector_Callback(hObject, eventdata, handles)
+% hObject    handle to mode_selector (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of radiobutton19
+
+% --------------------------------------------------------------------
+function mode_calcium_Callback(hObject, eventdata, handles)
+% hObject    handle to mode_calcium (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function mode_voltage_Callback(hObject, eventdata, handles)
+% hObject    handle to mode_voltage (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function advanced_Callback(hObject, eventdata, handles)
+% hObject    handle to advanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function measurement_settings_Callback(hObject, eventdata, handles)
+% hObject    handle to measurement_settings (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function fitting_settings_Callback(hObject, eventdata, handles)
+% hObject    handle to fitting_settings (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in popupmenu1.
+function popupmenu1_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in popupmenu2.
+function popupmenu2_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
