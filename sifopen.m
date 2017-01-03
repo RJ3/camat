@@ -11,6 +11,8 @@ atsifiomex.mexw64 with ATSIFIO64.dll
 IN YOUR SET DIRECTORY FOR 32-BIT AND 64-BIT VERSIONS OF MATLAB RESPECTIVELY
 
 Rafael Jaimes III 2012-11-11 ver 1.0
+2017-01-02 ver 1.1 -- modified for GUI file selection and implementation
+with camat GUI.
 %}
 addpath(genpath('dependencies'))
 [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file');
