@@ -1,4 +1,4 @@
-function [ret, data3, fps, gain]=sifopen
+function [ret, data3, fps, gain]=sifopen(source)
 %{
 [ret, data, fps, gain]=sifopen99(source) where source is a string 
 containing Andor .sif file name ret will return 0 if error occurs, 1 if ok. 
@@ -15,9 +15,14 @@ Rafael Jaimes III 2012-11-11 ver 1.0
 with camat GUI.
 %}
 addpath(genpath('dependencies'))
-[fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file');
 
-source=[pname,fname];
+switch nargin
+    case 0
+        [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file');
+        source=[pname,fname];    
+end
+
+
 
 rc=atsif_readfromfile(source);
 if (rc == 22002)
