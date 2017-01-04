@@ -1,4 +1,4 @@
-function [trace,dt]=txtopen
+function [trace,dt,fname]=txtopen
 
 [fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file');
 

@@ -1,4 +1,4 @@
-function [data,dt]=nd2open
+function [data,dt,fname]=nd2open
 
 % Nikon ND2 READER
 % Rafael Jaimes, PhD

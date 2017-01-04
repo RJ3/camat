@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 03-Jan-2017 13:41:02
+% Last Modified by GUIDE v2.5 04-Jan-2017 18:05:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -428,31 +428,19 @@ pr=str2double(handles.edit9.String);
 pc=str2double(handles.edit8.String);
 dt=handles.dt;
 
-% Find all the indices where the previous is less than the txt_maxrad
 maxrad=str2double(handles.txt_maxrad.String);
-rad=sqrt((gr-pr).^2 + (gc-pc).^2);
-radi=find(rad<=maxrad); 
 
-avesig=zeros(size(data,3),1);                                                                                                                       
-for i=1:length(radi)
-    % for each radi, find the gr and gc for that for all frames. Use those indices for the data, and get rid of all the singleton dimensions there.
-    pixsig=squeeze(data(gr(radi(i)),gc(radi(i)),:));                        
-    % Add the avesid and pix sig.
-    avesig=avesig+pixsig;                                                   
-end
+mode_selection = get(handles.popupmenu2, 'Value');
 
-% divide each avesig by the length of radi.
-avesig=avesig./length(radi);
-
-time=0:dt:length(avesig)*dt-dt;
+[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection);
 
 axes(handles.axes1) 
 hold off
 plot(time,avesig);
 xlabel('Time (s)')
 ylabel('Fluorescence (AU)');
+xlim([0 max(time)])
 set(handles.radiobutton10,'Value',1);
-
 
 axes(handles.axes3)
 imagesc(imstd);
@@ -465,6 +453,7 @@ handles.time=time;
 handles.avesig=avesig;
 guidata(hObject,handles);
 
+
 % --- Executes on button press in radiobutton10. TIME (SEC)
 function radiobutton10_Callback(hObject, eventdata, handles)
 avesig=handles.avesig;
@@ -476,6 +465,7 @@ plot(time,avesig)
 xlab='Time (s)';
 xlabel(xlab)
 ylabel('Fluorescence (AU)');
+xlim([0 max(time)])
 handles.time=time;
 handles.xlab=xlab;
 guidata(hObject,handles);
@@ -493,13 +483,6 @@ ylabel('Fluorescence (AU)');
 handles.time=time;
 handles.xlab=xlab;
 guidata(hObject,handles);
-
-% --------------------------------------------------------------------
-function Untitled_4_Callback(hObject, eventdata, handles)
-% hObject    handle to Untitled_4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 
 % --------------------------------------------------------------------
 function Test_Callback(hObject, eventdata, handles)
@@ -595,6 +578,9 @@ time=handles.time;
 thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
+disp('peak load')
+mean(handles.avesig)
+
 avesig_partialsmooth=double(avesig);
 avesig_partialsmooth=smooth(avesig_partialsmooth,3,'sgolay',1);
 
@@ -605,6 +591,7 @@ grad=gradient(avesig_partialsmooth);
 grad2=gradient(grad);
 
 
+% Use for Calcium
 % Find the peaks in the 2nd derivative, these correspond to the beginning
 % of the upstrokes (t0);
 [~,t0_locs] = findpeaks3(grad2,'MINPEAKHEIGHT',mean(grad2)+std(grad2),...
@@ -660,7 +647,7 @@ handles.maximum=maximum;
 guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton6.Processing GO. Main Loop Here
-function pushbutton6_Callback(hObject, eventdata, handles)
+function summary=pushbutton6_Callback(hObject, eventdata, handles)
 % Loading in data
 locsa=handles.locsa;
 upstroke_locs=handles.upstroke_locs;
@@ -797,6 +784,9 @@ plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
 
 %% Results Cell for single file analysis
 
+% For Voltage
+loct0=locup; % set initialization point to upstroke point
+
 results(trans,1)=depV(trans);
 results(trans,2)=(time(loc90)-time(loct0))*1000;
 results(trans,3)=(1/kFall)*1000;
@@ -818,20 +808,18 @@ clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
 summary(1,:)=mean(results,1);
+% 
+% summary(1,10)=results(1,7); % First Diastolic / F0
+% summary(1,11)=results(end,7); % Last Diastolic / F0
 
-summary(1,10)=results(1,7); % First Diastolic / F0
-summary(1,11)=results(end,7); % Last Diastolic / F0
+results(trans,:)=mean(results(:,:));
+% Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
+Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
 
-Rtab=array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
-
-handles.results=results;
-handles.Rtab=Rtab;
+% handles.results=results;
+handles.summary=summary; % averaged results row
+handles.Rtab=Rtab; % individual results with averaged results as last row
 guidata(hObject,handles);
-
-
-function txt_maxrad_Callback(hObject, eventdata, handles)
-
-
 
 function edit12_Callback(hObject, eventdata, handles)
 % hObject    handle to edit12 (see GCBO)mean
@@ -1007,10 +995,114 @@ guidata(hObject,handles)
 
 return
 
+function Untitled_6_Callback(hObject, eventdata, handles)
+[trace,dt]=txtopen;
+
+fps=1/dt;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+set(handles.text25,'String',fname);
+
+avesig=trace;
+
+time=0:dt:length(avesig)*dt-dt;
+
+axes(handles.axes1) 
+hold off
+plot(time,avesig);
+xlabel('Time (s)')
+ylabel('Fluorescence (AU)');
+set(handles.radiobutton10,'Value',1);
+
+
+handles.fps=fps;
+handles.dt=dt;
+handles.avesig=avesig;
+handles.time=time;
+guidata(hObject,handles)
+
+% ----------------ANDOR SIF OPEN-------------------------------------------
+function Untitled_4_Callback(hObject, eventdata, handles)
+
+[~, data, fps, ~, fname,pname]=sifopen;
+dt=1/fps;
+
+imstd=transform_image(data);
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+set(handles.text25,'String',fname);
+
+axes(handles.axes3) 
+hold off
+imagesc(imstd);
+set(gca, 'XTick', []);
+set(gca, 'YTick', []);
+axis image;
+axis off;
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+handles.pname=pname; % we have to export the path name so that batch can use it later
+guidata(hObject,handles)
+
+function imstd=transform_image(data)
+
+imstd=zeros(size(data,1),size(data,2));                                                                                                                 
+for i=1:size(data,1)                                                
+    % In each column of each row
+    for j=1:size(data,2)                                                                                                                                   
+    % That point equals the standard deviation of all the frames in that same column and row index
+    imstd(i,j)=std(data(i,j,:));                                                                                                                         
+    end
+end
 
 % --------------------------------------------------------------------
 function measurement_settings_Callback(hObject, eventdata, handles)
 childsettings
 % hObject    handle to measurement_settings (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+
+% --------------------------------------------------------------------
+function advanced_Callback(hObject, eventdata, handles)
+% hObject    handle to advanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton15. % BATCH PROCESSING
+function pushbutton15_Callback(hObject, eventdata, handles)
+pname=handles.pname;
+root=handles.edit16.String;
+nFiles=str2double(handles.edit15.String);
+
+% What files do you want to load?
+files=1:nFiles;
+% files=[11:56]; % specify specific file vector
+
+for filenum=files;  
+    
+    [~, data, fps, ~, ~, ~]=sifopen([pname, root,'_',num2str(filenum),'.sif']);
+    pushbutton3_Callback(hObject, eventdata, handles) % region selector   
+    pushbutton7_Callback(hObject, eventdata, handles) % peak detector
+    summary(filenum,:)=pushbutton6_Callback(hObject, eventdata, handles); % single file process
+    set(handles.text15,'String',num2str(filenum));
+%     results=
+end
+
+Rtab=(array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'}));
+handles.Rtab=Rtab; % individual results with averaged results as last row
+guidata(hObject,handles);
+
+% hObject    handle to pushbutton15 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)

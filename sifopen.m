@@ -1,4 +1,4 @@
-function [ret, data3, fps, gain]=sifopen(source)
+function [ret, data3, fps, gain,fname,pname]=sifopen(source)
 %{
 [ret, data, fps, gain]=sifopen99(source) where source is a string 
 containing Andor .sif file name ret will return 0 if error occurs, 1 if ok. 
@@ -17,9 +17,12 @@ with camat GUI.
 addpath(genpath('dependencies'))
 
 switch nargin
-    case 0
+    case 0 % source was unspecified
         [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file');
         source=[pname,fname];    
+    case 1 % file source was specified
+        fname=[]; % these output vars will be blank, since source was specified
+        pname=[]; % these output vars will be blank, since source was specified
 end
 
 
