@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 04-Jan-2017 18:05:25
+% Last Modified by GUIDE v2.5 05-Jan-2017 11:04:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -427,7 +427,6 @@ gc=handles.gc;
 pr=str2double(handles.edit9.String);
 pc=str2double(handles.edit8.String);
 dt=handles.dt;
-
 maxrad=str2double(handles.txt_maxrad.String);
 
 mode_selection = get(handles.popupmenu2, 'Value');
@@ -572,52 +571,13 @@ function Untitled_3_CreateFcn(hObject, eventdata, handles)
 
 % --- Executes on button press in Peak Detection Procedure.
 function pushbutton7_Callback(hObject, eventdata, handles)
-%
+
 avesig=handles.avesig;
 time=handles.time;
 thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
-disp('peak load')
-mean(handles.avesig)
-
-avesig_partialsmooth=double(avesig);
-avesig_partialsmooth=smooth(avesig_partialsmooth,3,'sgolay',1);
-
-amp=thres*max(avesig_partialsmooth);
-
-% Determine the gradient of the smoothed signal for the t0 and max dep vel
-grad=gradient(avesig_partialsmooth);
-grad2=gradient(grad);
-
-
-% Use for Calcium
-% Find the peaks in the 2nd derivative, these correspond to the beginning
-% of the upstrokes (t0);
-[~,t0_locs] = findpeaks3(grad2,'MINPEAKHEIGHT',mean(grad2)+std(grad2),...
-    'MINPEAKDISTANCE',mpd);
-
-% Find the maxima of the smoothed averaged signal
-[~,locsa] = findpeaks3(avesig_partialsmooth,'MINPEAKHEIGHT',amp,'MINPEAKDISTANCE',mpd);
-
-% Find all the minima for the smooth averaged signal
-[~,~,~,imin] = extrema(avesig_partialsmooth);
-% Sort the minima by ascending
-imin2=sort(imin,'ascend');
-
-% Find the peaks ~ corresponds to upstroke and max dep vel
-[depV,upstroke_locs] = findpeaks3(grad,'MINPEAKHEIGHT',mean(grad)+std(grad),'MINPEAKDISTANCE',mpd);
-
-%% Normalize the signal for 100% and 30% calculations
-allpoints=sort(avesig(t0_locs(1):end));
-% nump=length(allpoints);
-maximum=mean(allpoints)+std(allpoints);
-minimum=mean(allpoints)-0.5*std(allpoints);
-
-% bottom=floor(nump*0.50); % this was 0.35 before
-% maximum=mean(allpoints(end-20:end));
-% minimum=mean(allpoints(1:bottom));
-% minimum=mean(avesig(1:t0_locs(1)));
+[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(avesig, thres, mpd);
 
 axes(handles.axes1)
 hold off
@@ -637,7 +597,7 @@ hold on
 plot(time(locsa),avesig(locsa),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
 
 % Exporting data
-handles.text14.String=num2str(length(locsa));
+handles.text14.String=num2str(num_peaks);
 handles.locsa=locsa;
 handles.upstroke_locs=upstroke_locs;
 handles.t0_locs=t0_locs;
@@ -659,166 +619,12 @@ fps=handles.fps;
 minimum=handles.minimum;
 maximum=handles.maximum;
 
-% F0 for whole epoch
-F0=mean(avesig(1:t0_locs(1)));
-F0_line=linspace(F0, F0, length(avesig(1:t0_locs(1))));
 axes(handles.axes1)
 hold on
-plot(time(1:t0_locs(1)),F0_line,'r')
+[Rtab,Mtab]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum);
 
-% Loops for finding points
-trans=1;
-lasttrans=trans+1;
-
-if length(locsa)>length(upstroke_locs)
-        looplength=length(upstroke_locs);
-elseif length(upstroke_locs)>length(locsa)
-        looplength=length(locsa);        
-elseif length(upstroke_locs)==length(locsa)
-        looplength=length(locsa);
-end
-
-for i=1:looplength-1
-    
-% Return the Upstroke Point
-
-    loct0=t0_locs(i);
-
-lup=find(upstroke_locs>loct0,1,'first');
-locup=upstroke_locs(lup);
-
-% Return the Peak Point    
-lp=find(locsa>locup,1,'first');
-locpk=locsa(lp);
-
-% Return the t0 Point
-% lb2=find(imin2<locup,1,'last');
-% loct0=imin2(lb2);
-
-% Return to Baseline Point
-% lb=find(avesig(locpk:end)<=(avesig(locpk)-((avesig(locpk)-avesig(loct0))*0.95)),1,'first');
-[lb,~]=find(avesig(locpk:(t0_locs(i+1)-1))<minimum,1,'last');
-
-if isempty(lb)
-    locbase=t0_locs(i+1)-2;
-else
-    locbase=lb+locpk-1;
-end
-
-if loct0<locup<locpk<locbase
-%     disp('okay')
-elseif  loct0>locup
-        loct0=t0_locs(i+1);
-end
-
-%Average the last 3 points to compensate for noise in the baseline
-% avg_base=mean([avesig(locbase) avesig(locbase-1) avesig(locbase-3)]);
-normalized=(avesig(locpk:locbase)-avesig(locbase))/(avesig(locpk)-avesig(locbase));
-normSmooth=smooth(normalized,3,'sgolay',2);
-
-% design butterworth and apply
-% [b,a]=butter(15,50/(fps/2),'low');
-% normSmooth=filtfilt(b,a,normalized);
-
-[cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
-[cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80 or 90
-[lp2pre,~]=find(normSmooth<=0.695,1,'first');
-
-cad50_end=cad50_endpre+locpk;
-cad90_end=cad90_endpre+locpk;
-lp2=lp2pre+locpk;
-
-% Find the 90% upstroke point
-normUpstroke=(avesig(loct0:locpk)-avesig(loct0))/(avesig(locpk)-avesig(loct0));
-[loc90pre,~]=find(normUpstroke>=0.895,1,'first');
-loc90=loc90pre+loct0;
-
-
-%% Plotting
-% Plot the points of interest
-axes(handles.axes1)
-hold on
-% Plot the t0 Point
-plot(time(loct0),avesig(loct0),'m^','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
-% Plot the Initialize Upstroke Point
-plot(time(locup),avesig(locup),'ro','Markersize',8,'MarkerFaceColor','c','MarkerEdgeColor','k');
-% plot the 90% upstroke point
-plot(time(loc90),avesig(loc90),'m^','MarkerSize',8,'MarkerFaceColor','k','MarkerEdgeColor','k');
-% Plot the Peak Point
-plot(time(locpk),avesig(locpk),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
-% plot(time(lp1),avesig(lp1),'m^','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','m');
-plot(time(lp2),avesig(lp2),'mv','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
-% Plot the cad50 ending
-plot(time(cad50_end),avesig(cad50_end),'cs','Markersize',8,'MarkerFaceColor','c','MarkerEdgeColor','k');
-% Plot the cad90 ending
-plot(time(cad90_end),avesig(cad90_end),'cs','Markersize',8,'MarkerFaceColor','c','MarkerEdgeColor','k');
-% Plot the Return to Baseline Point
-plot(time(locbase),avesig(locbase),'yo','Markersize',8,'MarkerFaceColor','y','MarkerEdgeColor','k');
-
-%% Main Fitting Functions
-% Downstroke exponential (TauFall)
-X=avesig(lp2:locbase);
-X=double(X);
-Tpre=(lp2:locbase)'-lp2;
-T=linspace(0,length(Tpre)*(1/fps),length(Tpre))';
-
-downstroke = @(params,T) params(1).*(exp(-params(3).*T))+params(2);
-x0 = [25; 100; 1]; % Old Camera
-% x0 = [200; 3000; 10]; % New Camera
-options=optimset('Display','off','MaxFunEvals', 10000,'MaxIter',10000,...
-    'Algorithm','levenberg-marquardt');
-[params] = lsqcurvefit(downstroke,x0,T,X,[],[],options);
-A=params(1);B=params(2);kFall=params(3);
-recoverypred=A.*(exp(-kFall.*T))+B;
-
-axes(handles.axes1)
-hold on
-plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
-
-axes(handles.axes2)
-hold off
-plot(time(lp2:locbase),avesig(lp2:locbase),'o');
-hold on
-plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
-
-
-%% Results Cell for single file analysis
-
-% For Voltage
-loct0=locup; % set initialization point to upstroke point
-
-results(trans,1)=depV(trans);
-results(trans,2)=(time(loc90)-time(loct0))*1000;
-results(trans,3)=(1/kFall)*1000;
-results(trans,4)=(time(lp2)-time(loct0)); % CaD30
-% results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
-results(trans,5)=(time(cad90_end)-time(loct0)); % CaD90 or 80 (check above)
-results(trans,6)=(time(lp2)-time(loct0))./(time(cad90_end)-time(loct0));
-
-% results(trans,7)=avesig(locpk);
-results(trans,7)=avesig(locbase)/F0; %Diastolic
-results(trans,8)=avesig(locpk)/F0; %Systolic
-
-results(trans,9)=time(locsa(lp+1))-time(locpk);
-
-% Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
-
-trans=trans+1;
-clearvars X T A B kFall kRise recoverywin locbase loct0
-end
-
-summary(1,:)=mean(results,1);
-% 
-% summary(1,10)=results(1,7); % First Diastolic / F0
-% summary(1,11)=results(end,7); % Last Diastolic / F0
-
-results(trans,:)=mean(results(:,:));
-% Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
-Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
-
-% handles.results=results;
-handles.summary=summary; % averaged results row
-handles.Rtab=Rtab; % individual results with averaged results as last row
+handles.Rtab=Rtab; % individual results
+handles.Mtab=Mtab; % mean results row
 guidata(hObject,handles);
 
 function edit12_Callback(hObject, eventdata, handles)
@@ -1022,8 +828,81 @@ handles.avesig=avesig;
 handles.time=time;
 guidata(hObject,handles)
 
+
+
+% --------------------------------------------------------------------
+function measurement_settings_Callback(hObject, eventdata, handles)
+childsettings
+% hObject    handle to measurement_settings (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+
+% --- Executes on button press in pushbutton15. % BATCH PROCESSING
+function pushbutton15_Callback(hObject, eventdata, handles)
+pname=handles.pname;
+root=handles.edit16.String;
+nFiles=str2double(handles.edit15.String);
+
+gr=handles.gr;
+gc=handles.gc;
+pr=str2double(handles.edit9.String);
+pc=str2double(handles.edit8.String);
+maxrad=str2double(handles.txt_maxrad.String);
+mode_selection = get(handles.popupmenu2, 'Value');
+
+thres=handles.edit1.Value;
+mpd=round(handles.edit2.Value);
+
+% What files do you want to load?
+files=1:nFiles;
+% files=[11:56]; % specify specific file vector
+
+
+for filenum=files;     
+    try
+        [~, data, fps, ~, ~, ~]=sifopen([pname, root,'_',num2str(filenum),'.sif']);
+        dt=1/fps;
+
+        [avesig,time,radi]=region(data,gr,gc,pr,pc,dt, maxrad, mode_selection);
+        axes(handles.axes1) 
+        hold off
+        plot(time,avesig);
+        xlabel('Time (s)')
+        ylabel('Fluorescence (AU)');
+        xlim([0 max(time)])
+        set(handles.radiobutton10,'Value',1);
+        
+        hold on
+        [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(avesig, thres, mpd);
+        [~,~,mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum);
+        pause
+
+        batch_results(filenum,:)=mean_results;
+        set(handles.text15,'String',num2str(filenum));
+    catch me
+        batch_results(filenum,:)=mean_results;
+        set(handles.text15,'String',num2str(filenum));
+    end
+    
+end
+
+Btab=array2table(batch_results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
+handles.Btab=Btab; % batch results table with mean from each file
+guidata(hObject,handles);
+
+%% Menu Items
+function advanced_Callback(hObject, eventdata, handles)
+% hObject    handle to advanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 % ----------------ANDOR SIF OPEN-------------------------------------------
-function Untitled_4_Callback(hObject, eventdata, handles)
+
+function menu_andor_Callback(hObject, eventdata, handles)
 
 [~, data, fps, ~, fname,pname]=sifopen;
 dt=1/fps;
@@ -1060,49 +939,24 @@ for i=1:size(data,1)
     end
 end
 
-% --------------------------------------------------------------------
-function measurement_settings_Callback(hObject, eventdata, handles)
-childsettings
-% hObject    handle to measurement_settings (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in pushbutton17. % MEAN RESULTS BUTTON
+function pushbutton17_Callback(hObject, eventdata, handles)
+Mtab=handles.Mtab;
+assignin('base','Mtab',Mtab)
+openvar('Mtab')
 
 
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+% --- Executes on button press in pushbutton18. % BATCH RESULTS BUTTON
+function pushbutton18_Callback(hObject, eventdata, handles)
+Btab=handles.Btab;
+assignin('base','Btab',Btab)
+openvar('Btab')
 
 
-% --------------------------------------------------------------------
-function advanced_Callback(hObject, eventdata, handles)
-% hObject    handle to advanced (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-
-% --- Executes on button press in pushbutton15. % BATCH PROCESSING
-function pushbutton15_Callback(hObject, eventdata, handles)
-pname=handles.pname;
-root=handles.edit16.String;
-nFiles=str2double(handles.edit15.String);
-
-% What files do you want to load?
-files=1:nFiles;
-% files=[11:56]; % specify specific file vector
-
-for filenum=files;  
-    
-    [~, data, fps, ~, ~, ~]=sifopen([pname, root,'_',num2str(filenum),'.sif']);
-    pushbutton3_Callback(hObject, eventdata, handles) % region selector   
-    pushbutton7_Callback(hObject, eventdata, handles) % peak detector
-    summary(filenum,:)=pushbutton6_Callback(hObject, eventdata, handles); % single file process
-    set(handles.text15,'String',num2str(filenum));
-%     results=
-end
-
-Rtab=(array2table(summary,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'}));
-handles.Rtab=Rtab; % individual results with averaged results as last row
-guidata(hObject,handles);
-
-% hObject    handle to pushbutton15 (see GCBO)
+% --- Executes on button press in pushbutton19.
+function pushbutton19_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton19 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)

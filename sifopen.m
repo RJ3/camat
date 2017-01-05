@@ -18,7 +18,7 @@ addpath(genpath('dependencies'))
 
 switch nargin
     case 0 % source was unspecified
-        [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file');
+        [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file','/run/media/lab/Posnack_Lab_Lang/Lang/RH237/');
         source=[pname,fname];    
     case 1 % file source was specified
         fname=[]; % these output vars will be blank, since source was specified
