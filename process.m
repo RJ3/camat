@@ -63,6 +63,7 @@ normSmooth=smooth(normalized,3,'sgolay',2);
 
 [cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
 [cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80 or 90
+%[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad80 or 90
 [lp2pre,~]=find(normSmooth<=0.695,1,'first');
 
 cad50_end=cad50_endpre+locpk;

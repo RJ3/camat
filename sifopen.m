@@ -16,9 +16,12 @@ with camat GUI.
 %}
 addpath(genpath('dependencies'))
 
+%seed='/run/media/lab/Posnack_Lab_Lang/Lang/RH237/';
+seed='/home/lab/Documents/OpticalMapping/RH237';
+
 switch nargin
     case 0 % source was unspecified
-        [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file','/run/media/lab/Posnack_Lab_Lang/Lang/RH237/');
+        [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file',seed);
         source=[pname,fname];    
     case 1 % file source was specified
         fname=[]; % these output vars will be blank, since source was specified

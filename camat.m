@@ -860,7 +860,8 @@ mpd=round(handles.edit2.Value);
 
 % What files do you want to load?
 files=1:nFiles;
-% files=[11:56]; % specify specific file vector
+%files=[33:39]; % specify specific file vector
+
 
 
 for filenum=files;     
@@ -885,6 +886,7 @@ for filenum=files;
         batch_results(filenum,:)=mean_results;
         set(handles.text15,'String',num2str(filenum));
     catch me
+        mean_results=[];
         batch_results(filenum,:)=mean_results;
         set(handles.text15,'String',num2str(filenum));
     end

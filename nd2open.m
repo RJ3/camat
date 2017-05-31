@@ -16,6 +16,13 @@ data=zeros(xy(1),xy(2),nframes);
 metadata=header{1,2};
 time2 = metadata.get('timestamp #0002');
 time1 = metadata.get('timestamp #0001');
+
+if isempty(time1)
+    time2 = metadata.get('timestamp #00002');
+    time1 = metadata.get('timestamp #00001');
+end
+
+
 dt=time2-time1;
 
 for p=1:nframes
