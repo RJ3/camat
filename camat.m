@@ -859,8 +859,8 @@ thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
 % What files do you want to load?
-files=1:nFiles;
-%files=[33:39]; % specify specific file vector
+%files=1:nFiles;
+files=[5:15]; % specify specific file vector
 
 
 
@@ -881,7 +881,7 @@ for filenum=files;
         hold on
         [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(avesig, thres, mpd);
         [~,~,mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum);
-        pause
+        %pause
 
         batch_results(filenum,:)=mean_results;
         set(handles.text15,'String',num2str(filenum));

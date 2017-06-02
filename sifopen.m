@@ -17,7 +17,7 @@ with camat GUI.
 addpath(genpath('dependencies'))
 
 %seed='/run/media/lab/Posnack_Lab_Lang/Lang/RH237/';
-seed='/home/lab/Documents/OpticalMapping/RH237';
+seed='/var/run/media/lab/Jaimes3/RH237/';
 
 switch nargin
     case 0 % source was unspecified

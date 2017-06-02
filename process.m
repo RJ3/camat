@@ -62,8 +62,8 @@ normSmooth=smooth(normalized,3,'sgolay',2);
 % normSmooth=filtfilt(b,a,normalized);
 
 [cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
-[cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80 or 90
-%[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad80 or 90
+[cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80
+%[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad90
 [lp2pre,~]=find(normSmooth<=0.695,1,'first');
 
 cad50_end=cad50_endpre+locpk;
@@ -121,18 +121,18 @@ loct0=locup; % set initialization point to upstroke point
 results(trans,1)=depV(trans);
 results(trans,2)=(time(loc90)-time(loct0))*1000;
 results(trans,3)=(1/kFall)*1000;
-results(trans,4)=(time(lp2)-time(loct0)); % CaD30
+results(trans,4)=(time(lp2)-time(loct0))*1000; % CaD30
 % results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
-results(trans,5)=(time(cad90_end)-time(loct0)); % CaD90 or 80 (check above)
+results(trans,5)=(time(cad90_end)-time(loct0))*1000; % CaD90 or 80 (check above)
 results(trans,6)=(time(lp2)-time(loct0))./(time(cad90_end)-time(loct0));
 
 % results(trans,7)=avesig(locpk);
 results(trans,7)=avesig(locbase)/F0; %Diastolic
 results(trans,8)=avesig(locpk)/F0; %Systolic
 
-results(trans,9)=time(locsa(lp+1))-time(locpk); % PeakTimeDiff
+results(trans,9)=(time(locsa(lp+1))-time(locpk))*1000; % PeakTimeDiff
 
-Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff'});
+Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
