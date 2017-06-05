@@ -859,8 +859,8 @@ thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
 % What files do you want to load?
-files=1:nFiles;
-%files=[5:15]; % specify specific file vector
+%files=1:nFiles;
+files=[1,6:24]; % specify specific file vector
 
 
 

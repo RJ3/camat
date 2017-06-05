@@ -143,4 +143,4 @@ mean_results(1,:)=mean(results,1);
 mean_results(1,10)=results(1,7); % First Diastolic / F0
 mean_results(1,11)=results(end,7); % Last Diastolic / F0
 
-Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
+Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
