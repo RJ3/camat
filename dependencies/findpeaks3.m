@@ -38,7 +38,7 @@ function [pks,locs] = findpeaks3(X,varargin)
 %   Copyright 2007-2010 The MathWorks, Inc.
 %   $Revision: 1.1.6.11 $  $Date: 2010/02/17 19:00:08 $
 
-error(nargchk(1,11,nargin,'struct'));
+narginchk(1,11);
 
 [X,Ph,Pd,Th,Np,Str,infIdx] = parse_inputs(X,varargin{:});
 [pks,locs] = getPeaksAboveMinPeakHeight(X,Ph);
