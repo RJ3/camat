@@ -1,4 +1,6 @@
-function [Rtab,Mtab, mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum)
+function [Rtab,Mtab, mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum,type)
+% Use type=0 for calcium
+% Use type=1 for voltage
 
 % F0 for whole epoch
 F0=mean(avesig(1:t0_locs(1)));
@@ -19,7 +21,7 @@ elseif length(upstroke_locs)==length(locsa)
         looplength=length(locsa);
 end
 
-for i=1:looplength-1 % skip last transient
+for i=1+1:looplength-2 % skip first and last transient
     
 % Return the Upstroke Point
 
@@ -103,8 +105,8 @@ Tpre=(lp2:locbase)'-lp2;
 T=linspace(0,length(Tpre)*(1/fps),length(Tpre))';
 
 downstroke = @(params,T) params(1).*(exp(-params(3).*T))+params(2);
-x0 = [25; 100; 1]; % Old Camera
-% x0 = [200; 3000; 10]; % New Camera
+%x0 = [25; 100; 1]; % Old Camera
+x0 = [200; 3000; 10]; % New Camera
 options=optimset('Display','off','MaxFunEvals', 10000,'MaxIter',10000,...
     'Algorithm','levenberg-marquardt');
 [params] = lsqcurvefit(downstroke,x0,T,X,[],[],options);
@@ -116,7 +118,11 @@ plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
 %% Results Cell for single file analysis
 
 % For Voltage
-loct0=locup; % set initialization point to upstroke point
+if type==1
+    loct0=locup; % set initialization point to upstroke point
+else
+    loct0=loct0;
+end
 
 results(trans,1)=depV(trans);
 results(trans,2)=(time(loc90)-time(loct0))*1000;
@@ -132,15 +138,22 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 
 results(trans,9)=(time(locsa(lp+1))-time(locpk))*1000; % PeakTimeDiff
 
-Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
+if type==0
+    Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL'});
+elseif type==1
+    Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
+end
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
 mean_results(1,:)=mean(results,1);
-
 mean_results(1,10)=results(1,7); % First Diastolic / F0
 mean_results(1,11)=results(end,7); % Last Diastolic / F0
 
-Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+if type==0
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+elseif type==1
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+end

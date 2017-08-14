@@ -39,3 +39,6 @@ minimum=mean(allpoints)-0.5*std(allpoints);
 % minimum=mean(avesig(1:t0_locs(1)));
 
 num_peaks=length(locsa);
+
+% First derivative (for voltage) = upstroke_locs
+% Second derivative (for calcium) = t0_locs
