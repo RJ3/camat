@@ -21,7 +21,8 @@ elseif length(upstroke_locs)==length(locsa)
         looplength=length(locsa);
 end
 
-for i=1+1:looplength-1 % skip first and last transient
+% for i=1+1:looplength-1 % skip first and last transient
+for i=1:looplength-1 % skip first and last transient
     
 % Return the Upstroke Point
 
@@ -149,6 +150,7 @@ clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
 mean_results(1,:)=mean(results,1);
+mean_results(2,:)=std(results,1);
 mean_results(1,10)=results(1,7); % First Diastolic / F0
 mean_results(1,11)=results(end,7); % Last Diastolic / F0
 
