@@ -21,8 +21,8 @@ elseif length(upstroke_locs)==length(locsa)
         looplength=length(locsa);
 end
 
-% for i=1+1:looplength-1 % skip first and last transient
-for i=1:looplength-1 % skip first and last transient
+for i=1+1:looplength-1 % skip first and last transient
+% for i=1:looplength-1 % skip first and last transient
     
 % Return the Upstroke Point
 

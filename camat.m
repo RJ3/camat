@@ -469,7 +469,7 @@ Fs=1/dt;
 
 % IIR 5th order Butterworth  LPF
 n  = 5;    % Order
-Fc = 100;  % Cutoff Frequency
+Fc = 249.2;  % Cutoff Frequency
 Wn=(Fc/(Fs/2));
 
 [b,a] = butter(n,Wn);
@@ -477,7 +477,7 @@ Wn=(Fc/(Fs/2));
 calcium=filtfilt(b,a,pre_calcium);
 
 % skip pre-processing step
-calcium=pre_calcium;
+%calcium=pre_calcium;
 
 axes(handles.axes1) 
 hold off
@@ -979,8 +979,9 @@ function advanced_Callback(hObject, eventdata, handles)
 
 function menu_andor_Callback(hObject, eventdata, handles)
 
-[~, data, fps, ~, fname,pname]=sifopen;
+[~, pdata, fps, ~, fname,pname]=sifopen;
 dt=1/fps;
+data=pdata(:,:,2:end); % Remove the first frame.
 
 imstd=transform_image(data);
 
@@ -988,7 +989,7 @@ set(handles.text23,'String',num2str(dt));
 set(handles.text24,'String',num2str(1/dt));
 set(handles.text25,'String',[pname, fname]);
 
-axes(handles.axes3) 
+axes(handles.axes3)
 hold off
 imagesc(imstd);
 set(gca, 'XTick', []);
@@ -1092,20 +1093,28 @@ Fs=1/dt;
 
 % IIR 5th order Butterworth  LPF
 n  = 5;    % Order
-Fc = 100;  % Cutoff Frequency
+Fc = 80;  % Cutoff Frequency
 Wn=(Fc/(Fs/2));
 
 [b,a] = butter(n,Wn);
 
-voltage=filtfilt(b,a,pre_voltage);
+opol=6;
+time=time';
+[p,s,mu] = polyfit(time(:),pre_voltage(:),opol);
+fy=polyval(p,time(:),[],mu);
+d_voltage=pre_voltage(:)-fy;
+
+voltage=filtfilt(b,a,d_voltage); % skip the detrended version
+voltage=(voltage-min(voltage))/(max(voltage)-min(voltage));
+
 
 %skip preprocessing step
-voltage=pre_voltage;
+%voltage=pre_voltage;
 
 
 axes(handles.axes1) 
 hold on
-plot(time,voltage,'r');
+plot(time(:),voltage,'r');
 xlabel('Time (s)')
 ylabel('Fluorescence (AU)');
 xlim([0 max(time)])
