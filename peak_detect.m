@@ -1,7 +1,7 @@
 function [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(avesig, thres, mpd)
 
 avesig_partialsmooth=double(avesig);
-avesig_partialsmooth=smooth(avesig_partialsmooth,3,'sgolay',1);
+avesig_partialsmooth=smooth(avesig_partialsmooth,3,'sgolay',2);
 
 amp=thres*max(avesig_partialsmooth);
 

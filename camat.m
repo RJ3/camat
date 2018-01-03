@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 26-Jun-2017 13:30:22
+% Last Modified by GUIDE v2.5 03-Jan-2018 13:08:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -451,33 +451,47 @@ pr=str2double(handles.edit9.String);
 pc=str2double(handles.edit8.String);
 dt=handles.dt;
 maxrad=str2double(handles.txt_maxrad.String);
+dto=str2double(handles.edit23.String); %detrend polynomial order
+dt_enable = get(handles.checkbox10, 'Value'); % check if detrending is enabled.
+LPF_enable = get(handles.checkbox8, 'Value'); % check if LPF is enabled
+Fc=str2double(handles.edit21.String); % Cutoff Frequency
 
 mode_selection = 1;
 
-[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection);
+[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection); %region plotter
 
-pre_calcium=double((avesig-min(avesig))/(max(avesig)-min(avesig)));
+avesig=double(avesig);
 
-Fs=1/dt;
-% % FIR 50th order Filtering
-% hb=100; %high band is 60 Hz
-% or=50; %50th order
-% a0=[1 1 0 0];
-% f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
-% b = firpm(or,f0,a0);
-% a = 1;
+if dt_enable == true
+    opol=dto; %detrend polynomial order
+    time=time';
+    [p,~,mu] = polyfit(time(:),avesig(:),opol);
+    fy=polyval(p,time(:),[],mu);
+    d_calcium=avesig(:)-fy;
+else
+    d_calcium=avesig; %skip detrending step
+end
 
-% IIR 5th order Butterworth  LPF
-n  = 5;    % Order
-Fc = 249.2;  % Cutoff Frequency
-Wn=(Fc/(Fs/2));
+if LPF_enable == true
+    Fs=1/dt;
+    % % FIR 50th order Filtering
+    % hb=100; %high band is 60 Hz
+    % or=50; %50th order
+    % a0=[1 1 0 0];
+    % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+    % b = firpm(or,f0,a0);
+    % a = 1;
 
-[b,a] = butter(n,Wn);
+    % IIR 5th order Butterworth  LPF
+    n  = 5;    % Order
+    Wn=(Fc/(Fs/2));
+    [b,a] = butter(n,Wn);
+    pre_calcium=filtfilt(b,a,d_calcium);
+else
+    pre_calcium=d_calcium;% skip preprocessing step
+end
 
-calcium=filtfilt(b,a,pre_calcium);
-
-% skip pre-processing step
-%calcium=pre_calcium;
+calcium=double((pre_calcium-min(pre_calcium))/(max(pre_calcium)-min(pre_calcium))); %normalize
 
 axes(handles.axes1) 
 hold off
@@ -1062,10 +1076,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in pushbutton21. VOLTAGE 
+%% --- Executes on button press in Region Selector OK button VOLTAGE
 function pushbutton21_Callback(hObject, eventdata, handles)
-%Pick your Voltage Region 
-
 data=handles.data;
 imstd=handles.imstd;
 gr=handles.gr;
@@ -1074,43 +1086,46 @@ pr=str2double(handles.edit18.String);
 pc=str2double(handles.edit17.String);
 dt=handles.dt;
 maxrad=str2double(handles.edit19.String);
+dto=str2double(handles.edit24.String); %detrend polynomial order
+dt_enable = get(handles.checkbox11, 'Value'); % check if detrending is enabled.
+LPF_enable = get(handles.checkbox9, 'Value'); % check if LPF is enabled
+Fc=str2double(handles.edit22.String); % Cutoff Frequency
 
-mode_selection = 2;
+mode_selection = 2; % This inverts the signal for voltage when choosing the region
 
-[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection);
+[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection); %region plotter
+avesig=double(avesig);
 
-avesig=detrend(avesig);
-pre_voltage=double((avesig-min(avesig))/(max(avesig)-min(avesig)));
+if dt_enable == true
+    opol=dto; %detrend polynomial order
+    time=time';
+    [p,~,mu] = polyfit(time(:),avesig(:),opol);
+    fy=polyval(p,time(:),[],mu);
+    d_voltage=avesig(:)-fy;
+else
+    d_voltage=avesig; %skip detrending step
+end
 
-Fs=1/dt;
-% % FIR 50th order Filtering
-% hb=100; %high band is 100 Hz
-% or=50; %50th order
-% a0=[1 1 0 0];
-% f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
-% b = firpm(or,f0,a0);
-% a = 1;
+if LPF_enable == true
+    Fs=1/dt;
+    % % FIR 50th order Filtering
+    % hb=100; %high band is 60 Hz
+    % or=50; %50th order
+    % a0=[1 1 0 0];
+    % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+    % b = firpm(or,f0,a0);
+    % a = 1;
 
-% IIR 5th order Butterworth  LPF
-n  = 5;    % Order
-Fc = 80;  % Cutoff Frequency
-Wn=(Fc/(Fs/2));
+    % IIR 5th order Butterworth  LPF
+    n  = 5;    % Order
+    Wn=(Fc/(Fs/2));
+    [b,a] = butter(n,Wn);
+    pre_voltage=filtfilt(b,a,d_voltage);
+else
+    pre_voltage=d_voltage;% skip preprocessing step
+end
 
-[b,a] = butter(n,Wn);
-
-opol=6;
-time=time';
-[p,s,mu] = polyfit(time(:),pre_voltage(:),opol);
-fy=polyval(p,time(:),[],mu);
-d_voltage=pre_voltage(:)-fy;
-
-voltage=filtfilt(b,a,d_voltage); % skip the detrended version
-voltage=(voltage-min(voltage))/(max(voltage)-min(voltage));
-
-
-%skip preprocessing step
-%voltage=pre_voltage;
-
+voltage=double((pre_voltage-min(pre_voltage))/(max(pre_voltage)-min(pre_voltage))); % normalize
 
 axes(handles.axes1) 
 hold on
@@ -1166,3 +1181,129 @@ Difftab=array2table(CaD80_APD80,'VariableNames',{'CaD80_APD80'});
 
 assignin('base','Difftab',Difftab)
 openvar('Difftab')
+
+
+% --- Executes on button press in checkbox8.
+function checkbox8_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox8
+
+
+% --- Executes on button press in checkbox9.
+function checkbox9_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox9
+
+
+
+function edit21_Callback(hObject, eventdata, handles)
+% hObject    handle to edit21 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit21 as text
+%        str2double(get(hObject,'String')) returns contents of edit21 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit21_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit21 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit22_Callback(hObject, eventdata, handles)
+% hObject    handle to edit22 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit22 as text
+%        str2double(get(hObject,'String')) returns contents of edit22 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit22_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit22 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function edit24_Callback(hObject, eventdata, handles)
+% hObject    handle to edit24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit24 as text
+%        str2double(get(hObject,'String')) returns contents of edit24 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit24_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox11.
+function checkbox11_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox11
+
+
+
+function edit23_Callback(hObject, eventdata, handles)
+% hObject    handle to edit23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit23 as text
+%        str2double(get(hObject,'String')) returns contents of edit23 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit23_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox10.
+function checkbox10_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox10

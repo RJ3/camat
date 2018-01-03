@@ -58,7 +58,8 @@ end
 %Average the last 3 points to compensate for noise in the baseline
 % avg_base=mean([avesig(locbase) avesig(locbase-1) avesig(locbase-3)]);
 normalized=(avesig(locpk:locbase)-avesig(locbase))/(avesig(locpk)-avesig(locbase));
-normSmooth=smooth(normalized,3,'sgolay',2);
+%normSmooth=smooth(normalized,3,'sgolay',2);
+normSmooth=normalized; % skip smoothing step
 
 % design butterworth and apply
 % [b,a]=butter(15,50/(fps/2),'low');
