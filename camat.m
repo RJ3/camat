@@ -1177,7 +1177,8 @@ CMtab=handles.CMtab;
 VMtab=handles.VMtab;
 
 CaD80_APD80=CMtab.CaD80-VMtab.APD80;
-Difftab=array2table(CaD80_APD80,'VariableNames',{'CaD80_APD80'});
+CaT_AP_actTime=CMtab.ActTime-VMtab.ActTime;
+Difftab=array2table(CaD80_APD80,CaT_AP_actTime,'VariableNames',{'CaD80_APD80','ActTimeDiff'});
 
 assignin('base','Difftab',Difftab)
 openvar('Difftab')

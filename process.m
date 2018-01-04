@@ -127,7 +127,8 @@ else
 end
 
 results(trans,1)=depV(trans);
-results(trans,2)=(time(loc90)-time(loct0))*1000;
+%results(trans,2)=(time(loc90)-time(loct0))*1000;
+results(trans,2)=time(locup)*1000;
 results(trans,3)=(1/kFall)*1000;
 results(trans,4)=(time(lp2)-time(loct0))*1000; % CaD30
 % results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
@@ -141,9 +142,9 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 results(trans,9)=(time(locsa(lp+1))-time(locpk))*1000; % PeakTimeDiff
 
 if type==0
-    Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL'});
+    Rtab=array2table(results,'VariableNames',{'Vmax','ActTime','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL'});
 elseif type==1
-    Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
+    Rtab=array2table(results,'VariableNames',{'Vmax','ActTime','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
 end
 
 trans=trans+1;
@@ -156,7 +157,7 @@ mean_results(1,10)=results(1,7); % First Diastolic / F0
 mean_results(1,11)=results(end,7); % Last Diastolic / F0
 
 if type==0
-    Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','ActTime','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 elseif type==1
-    Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','ActTime','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 end
