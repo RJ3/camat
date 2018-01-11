@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 03-Jan-2018 13:08:12
+% Last Modified by GUIDE v2.5 08-Jan-2018 14:50:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1173,12 +1173,12 @@ end
 % --- Executes on button press in pushbutton26.
 % Differential Results for Vm and Ca
 function pushbutton26_Callback(hObject, eventdata, handles)
-CMtab=handles.CMtab;
-VMtab=handles.VMtab;
+CRtab=handles.CRtab;
+VRtab=handles.VRtab;
 
-CaD80_APD80=CMtab.CaD80-VMtab.APD80;
-CaT_AP_actTime=CMtab.ActTime-VMtab.ActTime;
-Difftab=array2table(CaD80_APD80,CaT_AP_actTime,'VariableNames',{'CaD80_APD80','ActTimeDiff'});
+CaD80_APD80=CRtab.CaD80-VRtab.APD80;
+CaT_AP_actTime=CRtab.ActTime-VRtab.ActTime;
+Difftab=array2table([CaD80_APD80,CaT_AP_actTime],'VariableNames',{'CaD80_APD80','ActTimeDiff'});
 
 assignin('base','Difftab',Difftab)
 openvar('Difftab')
@@ -1308,3 +1308,18 @@ function checkbox10_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox10
+
+
+% --- Executes on button press in pushbutton28.
+function pushbutton28_Callback(hObject, eventdata, handles)
+CRtab=handles.CRtab;
+VRtab=handles.VRtab;
+
+results(1,1)=mean(CRtab.CaD80-VRtab.APD80,1);
+results(1,2)=mean(CRtab.ActTime-VRtab.ActTime,1);
+results(2,1)=std(CRtab.CaD80-VRtab.APD80,1,1);
+results(2,2)=std(CRtab.ActTime-VRtab.ActTime,1,1);
+DiffMtab=array2table(results,'VariableNames',{'CaD80_APD80','ActTimeDiff'});
+
+assignin('base','DiffMtab',DiffMtab)
+openvar('DiffMtab')

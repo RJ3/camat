@@ -126,9 +126,10 @@ else
     loct0=loct0;
 end
 
-results(trans,1)=depV(trans);
+
 %results(trans,2)=(time(loc90)-time(loct0))*1000;
-results(trans,2)=time(locup)*1000;
+results(trans,1)=time(locup)*1000;
+results(trans,2)=depV(trans);
 results(trans,3)=(1/kFall)*1000;
 results(trans,4)=(time(lp2)-time(loct0))*1000; % CaD30
 % results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
@@ -142,22 +143,22 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 results(trans,9)=(time(locsa(lp+1))-time(locpk))*1000; % PeakTimeDiff
 
 if type==0
-    Rtab=array2table(results,'VariableNames',{'Vmax','ActTime','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL'});
+    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL'});
 elseif type==1
-    Rtab=array2table(results,'VariableNames',{'Vmax','ActTime','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
+    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
 end
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
-mean_results(1,:)=mean(results,1);
-mean_results(2,:)=std(results,1);
-mean_results(1,10)=results(1,7); % First Diastolic / F0
-mean_results(1,11)=results(end,7); % Last Diastolic / F0
+mean_results(1,:)=mean(results(:,2:end),1);
+mean_results(2,:)=std(results(:,2:end),1,1);
+mean_results(1,9)=results(1,7); % First Diastolic / F0
+mean_results(1,10)=results(end,7); % Last Diastolic / F0
 
 if type==0
-    Mtab=array2table(mean_results,'VariableNames',{'Vmax','ActTime','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 elseif type==1
-    Mtab=array2table(mean_results,'VariableNames',{'Vmax','ActTime','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 end
