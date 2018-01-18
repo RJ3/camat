@@ -780,14 +780,14 @@ set(handles.radiobutton10,'Value',1);
 % re-normalize calcium epoch
 epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
 % detrend the calcium normalized epoch
-epoch=epoch-mean(epoch);
+%epoch=epoch-mean(epoch); detrending is done at the earlier step now.
 
 %Also make the voltage epoch
 v_epoch=voltage(pt1:pt2);
 % re-normalize the votlage epoch
 v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
 % now detrend it
-v_epoch=v_epoch-mean(v_epoch);
+%v_epoch=v_epoch-mean(v_epoch); detrending is done earlier when plotting the region now
 
 
 handles.calcium=epoch;
