@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 11-Jan-2018 10:29:55
+% Last Modified by GUIDE v2.5 10-Jul-2018 12:37:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -631,17 +631,24 @@ function Untitled_3_CreateFcn(hObject, eventdata, handles)
 
 % --- Executes on button press in Peak Detection Procedure.
 function pushbutton7_Callback(hObject, eventdata, handles)
-% First find the Calcium peaks
-calcium=handles.calcium;
+% What peaks should be detected?
+mode_selection = get(handles.popupmenu2, 'Value');
+
+if mode_selection == or(1,3) % Dual or Calcium
+    signal=handles.calcium;
+elseif mode_selection == 2 % Voltage only
+    signal=handles.voltage;
+end
+    
 time=handles.time;
 thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
-[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(calcium, thres, mpd);
+[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(signal, thres, mpd);
 
 axes(handles.axes1)
 hold off
-plot(time,calcium)
+plot(time,signal)
 xlabel('Time (s)')
 ylabel('Fluorescence (AU)');
 hold on
@@ -654,7 +661,7 @@ hold off
 
 axes(handles.axes1)
 hold on
-plot(time(locsa),calcium(locsa),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
+plot(time(locsa),signal(locsa),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
 
 % Exporting data
 handles.text14.String=num2str(num_peaks);
@@ -663,14 +670,25 @@ guidata(hObject,handles);
 % --- Executes on button press in pushbutton6.Processing GO. Main Loop Here
 function summary=pushbutton6_Callback(hObject, eventdata, handles)
 clc
+
+mode_selection = get(handles.popupmenu2, 'Value');
+
+if mode_selection ==  1 % Dual
+    processCalcium(hObject, eventdata, handles)
+    processVoltage(hObject, eventdata, handles)
+elseif mode_selection == 2 % Voltage only
+    processVoltage(hObject, eventdata, handles)
+elseif mode_selection == 3 % Calcium only
+    processCalcium(hObject, eventdata, handles)
+end
+
+function processCalcium(hObject, eventdata, handles)
 % Loading in data
 calcium=handles.calcium;
-voltage=handles.voltage;
 time=handles.time;
 fps=handles.fps;
 thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
-
 % Detect peaks in calcium signal
 [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(calcium, thres, mpd);
 axes(handles.axes1)
@@ -678,10 +696,16 @@ hold on
 % Proces the calcium signal
 type=0; % for calcium
 [CRtab,  CMtab]=process(locsa, upstroke_locs,t0_locs,depV,calcium,time,fps,minimum,maximum,type);
-
 handles.CRtab=CRtab; % individual results for calcium
 handles.CMtab=CMtab; % mean results row for calcium
+guidata(hObject,handles);
 
+function processVoltage(hObject, eventdata, handles)
+voltage=handles.voltage;
+time=handles.time;
+fps=handles.fps;
+thres=handles.edit1.Value;
+mpd=round(handles.edit2.Value);
 % Detect peaks in voltage signal
 [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(voltage, thres, mpd);
 axes(handles.axes1)
@@ -690,10 +714,10 @@ plot(time,voltage,'r');
 % Process the voltage signal
 type=1; % for voltage
 [VRtab,VMtab]=process(locsa, upstroke_locs,t0_locs,depV,voltage,time,fps,minimum,maximum,type);
-
 handles.VRtab=VRtab; % individual results for calcium
 handles.VMtab=VMtab; % mean results row for calcium
 guidata(hObject,handles);
+
 
 function edit12_Callback(hObject, eventdata, handles)
 % hObject    handle to edit12 (see GCBO)mean
@@ -1323,3 +1347,103 @@ DiffMtab=array2table(results,'VariableNames',{'CaD80_APD80','ActTimeDiff'});
 
 assignin('base','DiffMtab',DiffMtab)
 openvar('DiffMtab')
+
+
+% --- Executes on selection change in listbox1.
+% File selection box
+function listbox1_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns listbox1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox1
+
+
+% --- Executes during object creation, after setting all properties.
+function listbox1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton30.
+% Change Folder Button under list box
+function pushbutton30_Callback(hObject, eventdata, handles)
+
+seed=[];
+seldirec = uigetdir(seed,'Select Image Directory');
+
+Infolder      = dir(seldirec);
+fileList = {Infolder(~[Infolder.isdir]).name};
+set(handles.listbox1,'String',fileList)
+handles.seldirec=seldirec;
+guidata(hObject,handles);
+
+% --- Executes on button press in pushbutton32.
+% Load Andor files
+function pushbutton32_Callback(hObject, eventdata, handles)
+seldirec=handles.seldirec;
+
+contents = cellstr(get(handles.listbox1,'String'));
+fileSelect=contents{get(handles.listbox1,'Value')};
+source=[seldirec, '/', fileSelect];
+[~, pdata, fps, ~, fname,pname]=sifopen(source);
+dt=1/fps;
+data=pdata(:,:,2:end); % Remove the first frame.
+
+imstd=transform_image(data);
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+set(handles.text25,'String',[pname, fname]);
+
+axes(handles.axes3)
+hold off
+imagesc(imstd);
+set(gca, 'XTick', []);
+set(gca, 'YTick', []);
+axis image;
+axis off;
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+handles.pname=pname; % we have to export the path name so that batch can use it later
+guidata(hObject,handles)
+
+
+% --- Executes on selection change in popupmenu2.
+function popupmenu2_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton33.
+function pushbutton33_Callback(hObject, eventdata, handles)
+axes(handles.axes1) 
+cla

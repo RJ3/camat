@@ -12,20 +12,22 @@ IN YOUR SET DIRECTORY FOR 32-BIT AND 64-BIT VERSIONS OF MATLAB RESPECTIVELY
 
 Rafael Jaimes III 2012-11-11 ver 1.0
 2017-01-02 ver 1.1 -- modified for GUI file selection and implementation
+2018-07-11 -- fixed filterindex bug so it works with listbox in camat.
 with camat GUI.
 %}
 addpath(genpath('dependencies'))
 
 %seed='/run/media/lab/Posnack_Lab_Lang/Lang/RH237/';
-seed='D:\Zyla\';
+seed='E:\Zyla\';
 
 switch nargin
     case 0 % source was unspecified
-        [fname,pname,filterindex]=uigetfile({'*.sifx';'*.sif'},'Select an Andor file',seed);
+        [fname,pname,filterindex]=uigetfile({'*.sif';'*.sifx'},'Select an Andor file',seed);
         source=[pname,fname];    
     case 1 % file source was specified
         fname=[]; % these output vars will be blank, since source was specified
         pname=[]; % these output vars will be blank, since source was specified
+        filterindex=1; %source only works for .SIF for now.
 end
 
 
@@ -33,7 +35,7 @@ end
 rc=atsif_readfromfile(source);
 if (rc == 22002)
 %     disp('SIF File Found')
-    if filterindex == 2 % Normal andor .SIF selected
+    if filterindex == 1 % Normal andor .SIF selected
         [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
@@ -52,7 +54,7 @@ if (rc == 22002)
                  end
             data3=reshape(data, (right-left+1)/hBin, (top-bottom+1)/vBin, noframes);
             end 
-    elseif filterindex == 1 % Zyla .SIFX selected
+    elseif filterindex == 2 % Zyla .SIFX selected
         [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
