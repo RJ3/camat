@@ -22,8 +22,7 @@ elseif length(upstroke_locs)==length(locsa)
 end
 
 for i=1+1:looplength-1 % skip first and last transient
-% for i=1:looplength-1 % skip first and last transient
-    
+   
 % Return the Upstroke Point
 
     loct0=t0_locs(i);
@@ -65,10 +64,10 @@ normSmooth=normalized; % skip smoothing step
 % [b,a]=butter(15,50/(fps/2),'low');
 % normSmooth=filtfilt(b,a,normalized);
 
-[cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
-[cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80
-%[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad90
-[lp2pre,~]=find(normSmooth<=0.695,1,'first');
+[cad50_endpre,~]=find(normSmooth<=0.495,1,'first'); % CaD50
+% [cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80
+[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad90
+[lp2pre,~]=find(normSmooth<=0.695,1,'first'); % CaD30
 
 cad50_end=cad50_endpre+locpk;
 cad90_end=cad90_endpre+locpk;
@@ -143,9 +142,10 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 results(trans,9)=(time(locsa(lp+1))-time(locpk))*1000; % PeakTimeDiff
 
 if type==0
-    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL'});
+    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','CaD30','CaD90','CaD30d90','D_F0','F1_F0','CL'});
 elseif type==1
-    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
+    results(trans,6)=(time(cad90_end)-time(loct0))*1000 - (time(lp2)-time(loct0))*1000; % Apd triangulation APD90 - APD30
+    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','APD30','APD90','APDtri','D_F0','F1_F0','CL'});
 end
 
 trans=trans+1;
@@ -158,7 +158,7 @@ mean_results(1,9)=results(1,7); % First Diastolic / F0
 mean_results(1,10)=results(end,7); % Last Diastolic / F0
 
 if type==0
-    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','CaD30','CaD90','CaD30d90','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 elseif type==1
-    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','APD30','APD90','APDtri','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 end
