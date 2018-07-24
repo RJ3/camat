@@ -634,7 +634,7 @@ function pushbutton7_Callback(hObject, eventdata, handles)
 % What peaks should be detected?
 mode_selection = get(handles.popupmenu2, 'Value');
 
-if mode_selection == or(1,3) % Dual or Calcium
+if mode_selection == 1 || 3 % Dual or Calcium
     signal=handles.calcium;
 elseif mode_selection == 2 % Voltage only
     signal=handles.voltage;
@@ -647,10 +647,11 @@ mpd=round(handles.edit2.Value);
 [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(signal, thres, mpd);
 
 axes(handles.axes1)
-hold off
-plot(time,signal)
-xlabel('Time (s)')
-ylabel('Fluorescence (AU)');
+%hold off
+%plot(time,signal)
+%xlim([0 max(time)])
+%xlabel('Time (s)')
+%ylabel('Fluorescence (AU)');
 hold on
 baseline=linspace(minimum, minimum, length(time));
 % peakavg=linspace(maximum, maximum, length(time));
@@ -711,6 +712,7 @@ mpd=round(handles.edit2.Value);
 axes(handles.axes1)
 hold on
 plot(time,voltage,'r');
+xlim([0 max(time)])
 % Process the voltage signal
 type=1; % for voltage
 [VRtab,VMtab]=process(locsa, upstroke_locs,t0_locs,depV,voltage,time,fps,minimum,maximum,type);
@@ -772,6 +774,7 @@ time=1:1:length(calcium);
 axes(handles.axes1)
 hold off
 plot(time,calcium)
+xlim([min(time) max(time)])
 xlab='Frames';
 xlabel(xlab)
 ylabel('Fluorescence (AU)');
@@ -790,34 +793,57 @@ set(handles.edit13,'String',num2str(pt2));
 function pushbutton9_Callback(hObject, eventdata, handles)
 pt1=str2double(handles.edit12.String);
 pt2=str2double(handles.edit13.String);
-calcium=handles.calcium;
-voltage=handles.voltage;
 time=handles.time;
+mode_selection = get(handles.popupmenu2, 'Value');
 
-epoch=calcium(pt1:pt2);
-axes(handles.axes1)
-hold off
-plot(time(pt1:pt2),epoch)
-xlabel('Time (sec)')
-ylabel('Fluorescence (AU)');
-set(handles.radiobutton10,'Value',1);
-% re-normalize calcium epoch
-epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
-% detrend the calcium normalized epoch
-%epoch=epoch-mean(epoch); detrending is done at the earlier step now.
-
-%Also make the voltage epoch
-v_epoch=voltage(pt1:pt2);
-% re-normalize the votlage epoch
-v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
-% now detrend it
-%v_epoch=v_epoch-mean(v_epoch); detrending is done earlier when plotting the region now
+if mode_selection ==  1 % Dual
+    calcium=handles.calcium;
+    epoch=calcium(pt1:pt2);
+    epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
+    voltage=handles.voltage;
+    v_epoch=voltage(pt1:pt2);
+    v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
+    handles.calcium=epoch;
+    handles.voltage=v_epoch;
+    handles.time=time(pt1:pt2);
+    guidata(hObject,handles);
+    axes(handles.axes1)
+    plotEpoch(v_epoch, pt1, pt2, time)
+    set(handles.radiobutton10,'Value',1);
 
 
-handles.calcium=epoch;
-handles.voltage=v_epoch;
-handles.time=time(pt1:pt2);
-guidata(hObject,handles);
+elseif mode_selection == 2 % Voltage only
+    voltage=handles.voltage;
+    v_epoch=voltage(pt1:pt2);
+    v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
+    handles.voltage=v_epoch;
+    handles.time=time(pt1:pt2);
+    guidata(hObject,handles);
+    axes(handles.axes1)
+    plotEpoch(v_epoch, pt1, pt2, time)
+    set(handles.radiobutton10,'Value',1);
+
+
+elseif mode_selection == 3 % Calcium only
+    calcium=handles.calcium;
+    epoch=calcium(pt1:pt2);
+    epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
+    handles.calcium=epoch;
+    handles.time=time(pt1:pt2);
+    guidata(hObject,handles);
+    axes(handles.axes1)
+    plotEpoch(epoch, pt1, pt2, time)
+    set(handles.radiobutton10,'Value',1);
+
+
+end
+
+function plotEpoch(epoch, pt1, pt2, time)
+    hold off
+    plot(time(pt1:pt2),epoch)
+    xlim([time(pt1) time(pt2)])
+    xlabel('Time (sec)')
+    ylabel('Fluorescence (AU)');
 
 % --- Calcium Individual Results
 function pushbutton10_Callback(hObject, eventdata, handles)
@@ -1377,32 +1403,41 @@ end
 % Change Folder Button under list box
 function pushbutton30_Callback(hObject, eventdata, handles)
 
-seed=[];
+seed='/run/media/lab/Posnack-Heart/Mapping';
 seldirec = uigetdir(seed,'Select Image Directory');
 
 Infolder      = dir(seldirec);
 fileList = {Infolder(~[Infolder.isdir]).name};
+set(handles.listbox1,'Value',1); 
 set(handles.listbox1,'String',fileList)
 handles.seldirec=seldirec;
 guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton32.
-% Load Andor files
+% Load files from the listbox
 function pushbutton32_Callback(hObject, eventdata, handles)
 seldirec=handles.seldirec;
 
 contents = cellstr(get(handles.listbox1,'String'));
 fileSelect=contents{get(handles.listbox1,'Value')};
 source=[seldirec, '/', fileSelect];
-[~, pdata, fps, ~, fname,pname]=sifopen(source);
-dt=1/fps;
-data=pdata(:,:,2:end); % Remove the first frame.
+[path, name, ext]=fileparts(source);
+
+if ext == '.sif'
+    [~, pdata, fps, ~, fname,pname]=sifopen(source);
+    data=pdata(:,:,2:end); % Remove the first frame.
+    dt=1/fps;
+    handles.pname=pname; % we have to export the path name so that batch can use it later
+elseif    ext == '.nd2'
+    [data,dt]=nd2open(source);
+    fps=1/dt;
+end
 
 imstd=transform_image(data);
 
 set(handles.text23,'String',num2str(dt));
 set(handles.text24,'String',num2str(1/dt));
-set(handles.text25,'String',[pname, fname]);
+set(handles.text25,'String',source);
 
 axes(handles.axes3)
 hold off
@@ -1416,7 +1451,6 @@ handles.imstd=imstd;
 handles.data=data;
 handles.dt=dt;
 handles.fps=fps;
-handles.pname=pname; % we have to export the path name so that batch can use it later
 guidata(hObject,handles)
 
 
