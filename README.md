@@ -1,6 +1,5 @@
 # camat
-Cardiac Analysis in MATlab 
-
+Cardiac Mapping analysis tool
 A GUI based program to rapidly analyze optical mapping data (Calcium and Voltage)
 Written by Rafael Jaimes III, PhD
 The goal of camat is to automate optical mapping analysis as much as possible. A secondary goal is to support
