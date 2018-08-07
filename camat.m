@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 10-Jul-2018 12:37:24
+% Last Modified by GUIDE v2.5 07-Aug-2018 08:59:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1481,3 +1481,37 @@ end
 function pushbutton33_Callback(hObject, eventdata, handles)
 axes(handles.axes1) 
 cla
+
+
+% --------------------------------------------------------------------
+function tifmenu_Callback(hObject, eventdata, handles)
+[preData,fps]=tifopen;
+dt=1/fps;
+data=double(preData);
+imstd=zeros(size(data,1),size(data,2)); 
+for i=1:size(data,1)                                                
+    % In each column of each row
+    for j=1:size(data,2)                                                                                                                                   
+    % That point equals the standard deviation of all the frames in that same column and row index
+    imstd(i,j)=std(data(i,j,:));                                                                                                                         
+    end
+end
+axes(handles.axes3) 
+hold off
+imagesc(imstd);
+axis image;
+axis off;
+
+fps=1/dt;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+guidata(hObject,handles)
+% hObject    handle to tifmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
