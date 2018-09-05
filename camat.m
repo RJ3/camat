@@ -793,8 +793,11 @@ set(handles.edit13,'String',num2str(pt2));
 function pushbutton9_Callback(hObject, eventdata, handles)
 pt1=str2double(handles.edit12.String);
 pt2=str2double(handles.edit13.String);
+LPF_enable = get(handles.checkbox8, 'Value'); % check if LPF is enabled
 time=handles.time;
 mode_selection = get(handles.popupmenu2, 'Value');
+Fc=str2double(handles.edit21.String); % Cutoff Frequency
+dt=handles.dt;
 
 if mode_selection ==  1 % Dual
     calcium=handles.calcium;
@@ -826,7 +829,28 @@ elseif mode_selection == 2 % Voltage only
 
 elseif mode_selection == 3 % Calcium only
     calcium=handles.calcium;
-    epoch=calcium(pt1:pt2);
+    
+        if LPF_enable == true
+        Fs=1/dt;
+        % % FIR 50th order Filtering
+        % hb=100; %high band is 60 Hz
+        % or=50; %50th order
+        % a0=[1 1 0 0];
+        % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+        % b = firpm(or,f0,a0);
+        % a = 1;
+
+        % IIR 5th order Butterworth  LPF
+        n  = 5;    % Order
+        Wn=(Fc/(Fs/2));
+        [b,a] = butter(n,Wn);
+        pre_calcium=filtfilt(b,a,calcium);
+    else
+        pre_calcium=calcium;% skip preprocessing step
+    end
+      
+    
+    epoch=pre_calcium(pt1:pt2);
     epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
     handles.calcium=epoch;
     handles.time=time(pt1:pt2);
@@ -834,8 +858,7 @@ elseif mode_selection == 3 % Calcium only
     axes(handles.axes1)
     plotEpoch(epoch, pt1, pt2, time)
     set(handles.radiobutton10,'Value',1);
-
-
+    
 end
 
 function plotEpoch(epoch, pt1, pt2, time)
@@ -1431,6 +1454,23 @@ if ext == '.sif'
 elseif    ext == '.nd2'
     [data,dt]=nd2open(source);
     fps=1/dt;
+elseif ext == '.txt'
+    [data,dt]=txtopen(source);
+    fps=1/dt;
+    avesig=data;
+    time=0:dt:length(avesig)*dt-dt;
+    axes(handles.axes1) 
+    hold off
+    axes(handles.axes1) 
+    hold off
+    plot(time,avesig);
+    xlabel('Time (s)')
+    ylabel('Fluorescence (AU)');
+    set(handles.radiobutton10,'Value',1);
+    handles.fps=fps;
+    handles.dt=dt;
+    handles.calcium=avesig;
+    handles.time=time;
 end
 
 imstd=transform_image(data);

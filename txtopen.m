@@ -1,7 +1,15 @@
-function [trace,dt,fname]=txtopen
+function [trace,dt,fname]=txtopen(source)
 
 seed='/run/media/lab/Seagate Expansion Drive/M7764-Nikon Eclipse Ti Data/Cell Imaging/Cells/hiPS-CM_Calcium/Raw Data/';
-[fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file',seed);
+
+switch nargin
+    case 0 % source was unspecified
+        [fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file',seed);
+        source=[pname,fname];    
+    case 1 % file source was specified
+        fname=[]; % these output vars will be blank, since source was specified
+        pname=[]; % these output vars will be blank, since source was specified
+end
 
 
 delimiter = '\t';
@@ -14,7 +22,7 @@ formatSpec = '%*s %f %*s %*s %*s %f %[^\n\r]';
 % %*s is a string that gets skipped, %f is a float that gets read
 
 %% Open the text file.
-fileID = fopen([pname, fname],'r','n','UTF16-LE');
+fileID = fopen(source,'r','n','UTF16-LE');
 % Skip the BOM (Byte Order Mark).
 fseek(fileID, 2, 'bof');
 
