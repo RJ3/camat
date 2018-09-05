@@ -1,6 +1,7 @@
 function [trace,dt,fname]=txtopen
 
-[fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file');
+seed='/run/media/lab/Seagate Expansion Drive/M7764-Nikon Eclipse Ti Data/Cell Imaging/Cells/hiPS-CM_Calcium/Raw Data/';
+[fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file',seed);
 
 
 delimiter = '\t';
@@ -9,7 +10,8 @@ startRow = 2;
 %% Format string for each line of text:
 %   column6: double (%f)
 % For more information, see the TEXTSCAN documentation.
-formatSpec = '%*s%f%*s%*s%*s%f%[^\n\r]';
+formatSpec = '%*s %f %*s %*s %*s %f %[^\n\r]';
+% %*s is a string that gets skipped, %f is a float that gets read
 
 %% Open the text file.
 fileID = fopen([pname, fname],'r','n','UTF16-LE');
@@ -35,4 +37,8 @@ fclose(fileID);
 time = dataArray{:, 1};
 trace = dataArray{:,2};
 
-dt=time(2,1)-time(1,1);
+totalTime=time(end,1)-time(1,1);
+nImages=length(time(:,1));
+dt=totalTime/nImages;
+
+%dt=time(2,1)-time(1,1);
