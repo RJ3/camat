@@ -936,7 +936,7 @@ guidata(hObject,handles)
 return
 
 function Untitled_6_Callback(hObject, eventdata, handles)
-[trace,dt]=txtopen;
+[trace,dt,fname]=txtopen;
 
 fps=1/dt;
 
@@ -958,7 +958,7 @@ set(handles.radiobutton10,'Value',1);
 
 handles.fps=fps;
 handles.dt=dt;
-handles.avesig=avesig;
+handles.calcium=avesig;
 handles.time=time;
 guidata(hObject,handles)
 
