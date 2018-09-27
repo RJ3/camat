@@ -1,4 +1,6 @@
-function [Rtab,Mtab, mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum)
+function [Rtab,Mtab, mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum,type)
+% Use type=0 for calcium
+% Use type=1 for voltage
 
 % F0 for whole epoch
 F0=mean(avesig(1:t0_locs(1)));
@@ -19,8 +21,8 @@ elseif length(upstroke_locs)==length(locsa)
         looplength=length(locsa);
 end
 
-for i=1:looplength-1 % skip last transient
-    
+for i=1+1:looplength-1 % skip first and last transient
+   
 % Return the Upstroke Point
 
     loct0=t0_locs(i);
@@ -55,16 +57,17 @@ end
 %Average the last 3 points to compensate for noise in the baseline
 % avg_base=mean([avesig(locbase) avesig(locbase-1) avesig(locbase-3)]);
 normalized=(avesig(locpk:locbase)-avesig(locbase))/(avesig(locpk)-avesig(locbase));
-normSmooth=smooth(normalized,3,'sgolay',2);
+%normSmooth=smooth(normalized,3,'sgolay',2);
+normSmooth=normalized; % skip smoothing step
 
 % design butterworth and apply
 % [b,a]=butter(15,50/(fps/2),'low');
 % normSmooth=filtfilt(b,a,normalized);
 
-[cad50_endpre,~]=find(normSmooth<=0.495,1,'first');
-[cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80
-%[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad90
-[lp2pre,~]=find(normSmooth<=0.695,1,'first');
+[cad50_endpre,~]=find(normSmooth<=0.495,1,'first'); % CaD50
+% [cad90_endpre,~]=find(normSmooth<=0.195,1,'first'); %Cad80
+[cad90_endpre,~]=find(normSmooth<=0.095,1,'first'); %Cad90
+[lp2pre,~]=find(normSmooth<=0.695,1,'first'); % CaD30
 
 cad50_end=cad50_endpre+locpk;
 cad90_end=cad90_endpre+locpk;
@@ -103,8 +106,8 @@ Tpre=(lp2:locbase)'-lp2;
 T=linspace(0,length(Tpre)*(1/fps),length(Tpre))';
 
 downstroke = @(params,T) params(1).*(exp(-params(3).*T))+params(2);
-x0 = [25; 100; 1]; % Old Camera
-% x0 = [200; 3000; 10]; % New Camera
+%x0 = [25; 100; 1]; % Old Camera
+x0 = [200; 3000; 10]; % New Camera
 options=optimset('Display','off','MaxFunEvals', 10000,'MaxIter',10000,...
     'Algorithm','levenberg-marquardt');
 [params] = lsqcurvefit(downstroke,x0,T,X,[],[],options);
@@ -116,10 +119,16 @@ plot(time(lp2:locbase),recoverypred,'g-','linewidth',2);
 %% Results Cell for single file analysis
 
 % For Voltage
-loct0=locup; % set initialization point to upstroke point
+if type==1
+    loct0=locup; % set initialization point to upstroke point
+else
+    loct0=loct0;
+end
 
-results(trans,1)=depV(trans);
-results(trans,2)=(time(loc90)-time(loct0))*1000;
+
+%results(trans,2)=(time(loc90)-time(loct0))*1000;
+results(trans,1)=time(locup)*1000;
+results(trans,2)=depV(trans);
 results(trans,3)=(1/kFall)*1000;
 results(trans,4)=(time(lp2)-time(loct0))*1000; % CaD30
 % results(trans,5)=(time(cad50_end)-time(loct0)); % CaD50
@@ -132,15 +141,24 @@ results(trans,8)=avesig(locpk)/F0; %Systolic
 
 results(trans,9)=(time(locsa(lp+1))-time(locpk))*1000; % PeakTimeDiff
 
-Rtab=array2table(results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL'});
+if type==0
+    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','CaD30','CaD90','CaD30d90','D_F0','F1_F0','CL'});
+elseif type==1
+    results(trans,6)=(time(cad90_end)-time(loct0))*1000 - (time(lp2)-time(loct0))*1000; % Apd triangulation APD90 - APD30
+    Rtab=array2table(results,'VariableNames',{'ActTime','Vmax','TauFall','APD30','APD90','APDtri','D_F0','F1_F0','CL'});
+end
 
 trans=trans+1;
 clearvars X T A B kFall kRise recoverywin locbase loct0
 end
 
-mean_results(1,:)=mean(results,1);
+mean_results(1,:)=mean(results(:,2:end),1);
+mean_results(2,:)=std(results(:,2:end),1,1);
+mean_results(1,9)=results(1,7); % First Diastolic / F0
+mean_results(1,10)=results(end,7); % Last Diastolic / F0
 
-mean_results(1,10)=results(1,7); % First Diastolic / F0
-mean_results(1,11)=results(end,7); % Last Diastolic / F0
-
-Mtab=array2table(mean_results,'VariableNames',{'Vmax','UpTime90','TauFall','APD30','APD80','APD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+if type==0
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','CaD30','CaD90','CaD30d90','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+elseif type==1
+    Mtab=array2table(mean_results,'VariableNames',{'Vmax','TauFall','APD30','APD90','APDtri','D_F0','F1_F0','CL','FD_F0','LD_F0'});
+end

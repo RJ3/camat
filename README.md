@@ -1,5 +1,5 @@
 # camat
-Cardiac Analysis in MATlab 
+Cardiac Mapping analysis tool
 
 A GUI based program to rapidly analyze optical mapping data (Calcium and Voltage)
 Written by Rafael Jaimes III, PhD

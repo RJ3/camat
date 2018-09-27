@@ -12,20 +12,22 @@ IN YOUR SET DIRECTORY FOR 32-BIT AND 64-BIT VERSIONS OF MATLAB RESPECTIVELY
 
 Rafael Jaimes III 2012-11-11 ver 1.0
 2017-01-02 ver 1.1 -- modified for GUI file selection and implementation
+2018-07-11 -- fixed filterindex bug so it works with listbox in camat.
 with camat GUI.
 %}
 addpath(genpath('dependencies'))
 
 %seed='/run/media/lab/Posnack_Lab_Lang/Lang/RH237/';
-seed='/run/media/raf/Jaimes3/RH237/';
+seed='E:\Zyla\';
 
 switch nargin
     case 0 % source was unspecified
-        [fname,pname]=uigetfile({'*.sif'},'Select an Andor .sif file',seed);
+        [fname,pname,filterindex]=uigetfile({'*.sif';'*.sifx'},'Select an Andor file',seed);
         source=[pname,fname];    
     case 1 % file source was specified
         fname=[]; % these output vars will be blank, since source was specified
         pname=[]; % these output vars will be blank, since source was specified
+        filterindex=1; %source only works for .SIF for now.
 end
 
 
@@ -33,7 +35,8 @@ end
 rc=atsif_readfromfile(source);
 if (rc == 22002)
 %     disp('SIF File Found')
-    [~,loaded] = atsif_isloaded();
+    if filterindex == 1 % Normal andor .SIF selected
+        [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
             signal=0;            
@@ -50,7 +53,31 @@ if (rc == 22002)
                     gain=str2double(sgain);
                  end
             data3=reshape(data, (right-left+1)/hBin, (top-bottom+1)/vBin, noframes);
-        end 
+            end 
+    elseif filterindex == 2 % Zyla .SIFX selected
+        [~,loaded] = atsif_isloaded();
+        if loaded
+            %signal=0, ref=1, backgd=2, 3=source, 4=live;
+            signal=0;            
+            [~,present]=atsif_isdatasourcepresent(signal);    
+                 if present
+                    ret=1;
+                    [~,KCT]=atsif_getpropertyvalue(signal,'KineticCycleTime');
+                    fps=1/str2double(KCT);
+                    [~,noframes]=atsif_getnumberframes(signal);
+                    [~,size]=atsif_getframesize(signal);
+                    [~,left,bottom,right,top,hBin,vBin]=atsif_getsubimageinfo(signal,0);                    
+                    [~,sgain]=atsif_getpropertyvalue(signal,'PreAmplifierGain');
+                    gain=str2double(sgain);
+                    data3=zeros((right-left+1)/hBin,(top-bottom+1)/vBin,noframes);
+                    for fn=0:1:noframes-1
+                        [~,data]=atsif_getframe(signal, fn,size);
+                        data3(:,:,fn+1)=reshape(data, (right-left+1)/hBin,(top-bottom+1)/vBin); % 
+                    end
+
+                 end                
+        end  
+    end
     atsif_closefile();
 end     
    

@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 05-Jan-2017 11:04:00
+% Last Modified by GUIDE v2.5 07-Aug-2018 08:59:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -80,6 +80,8 @@ function radiobutton1_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of radiobutton1
 
+function edit19_Callback(hObject, eventdata, handles)
+% Px Radius for Voltage Region
 
 % --- Executes on button press in radiobutton2.
 function radiobutton2_Callback(hObject, eventdata, handles)
@@ -125,8 +127,11 @@ end
 
 % --- Executes on slider movement. LOCKOUT PEAK DETECTOR SLIDER
 function slider2_Callback(hObject, eventdata, handles)
-handles.edit2.Value=get(handles.slider2,'Value');
-handles.edit2.String=num2str(get(handles.slider2,'Value'));
+val=round(get(handles.slider2,'Value'));
+handles.slider2.Value=val;
+
+handles.edit2.Value=val;
+handles.edit2.String=num2str(val);
 % hObject    handle to slider2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -418,7 +423,25 @@ handles.gr=gr;
 handles.gc=gc;
 guidata(hObject,handles);
 
-%% --- Executes on button press in Region Selector OK button
+
+% --- Executes on button press in pushbutton20.
+function pushbutton20_Callback(hObject, eventdata, handles)
+[gr,gc]=find(handles.imstd>0);
+[pc,pr]=ginput(1);                                                                                                                                 
+pc=round(pc);                                                                                                                                       
+pr=round(pr);
+
+% update text boxes
+set(handles.edit17,'String',num2str(pc));
+set(handles.edit18,'String',num2str(pr));
+
+% output needed vars  
+handles.gr=gr;
+handles.gc=gc;
+guidata(hObject,handles);
+
+
+%% --- Executes on button press in Region Selector OK button CALCIUM
 function pushbutton3_Callback(hObject, eventdata, handles)
 data=handles.data;
 imstd=handles.imstd;
@@ -428,14 +451,51 @@ pr=str2double(handles.edit9.String);
 pc=str2double(handles.edit8.String);
 dt=handles.dt;
 maxrad=str2double(handles.txt_maxrad.String);
+dto=str2double(handles.edit23.String); %detrend polynomial order
+dt_enable = get(handles.checkbox10, 'Value'); % check if detrending is enabled.
+LPF_enable = get(handles.checkbox8, 'Value'); % check if LPF is enabled
+Fc=str2double(handles.edit21.String); % Cutoff Frequency
 
-mode_selection = get(handles.popupmenu2, 'Value');
+mode_selection = 1;
 
-[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection);
+[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection); %region plotter
+
+avesig=double(avesig);
+
+if dt_enable == true
+    opol=dto; %detrend polynomial order
+    time=time';
+    [p,~,mu] = polyfit(time(:),avesig(:),opol);
+    fy=polyval(p,time(:),[],mu);
+    d_calcium=avesig(:)-fy;
+else
+    d_calcium=avesig; %skip detrending step
+end
+
+if LPF_enable == true
+    Fs=1/dt;
+    % % FIR 50th order Filtering
+    % hb=100; %high band is 60 Hz
+    % or=50; %50th order
+    % a0=[1 1 0 0];
+    % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+    % b = firpm(or,f0,a0);
+    % a = 1;
+
+    % IIR 5th order Butterworth  LPF
+    n  = 5;    % Order
+    Wn=(Fc/(Fs/2));
+    [b,a] = butter(n,Wn);
+    pre_calcium=filtfilt(b,a,d_calcium);
+else
+    pre_calcium=d_calcium;% skip preprocessing step
+end
+
+calcium=double((pre_calcium-min(pre_calcium))/(max(pre_calcium)-min(pre_calcium))); %normalize
 
 axes(handles.axes1) 
 hold off
-plot(time,avesig);
+plot(time,calcium);
 xlabel('Time (s)')
 ylabel('Fluorescence (AU)');
 xlim([0 max(time)])
@@ -449,7 +509,7 @@ axis image
 
 % Exporting variables
 handles.time=time;
-handles.avesig=avesig;
+handles.calcium=calcium;
 guidata(hObject,handles);
 
 
@@ -571,19 +631,27 @@ function Untitled_3_CreateFcn(hObject, eventdata, handles)
 
 % --- Executes on button press in Peak Detection Procedure.
 function pushbutton7_Callback(hObject, eventdata, handles)
+% What peaks should be detected?
+mode_selection = get(handles.popupmenu2, 'Value');
 
-avesig=handles.avesig;
+if mode_selection == 1 || 3 % Dual or Calcium
+    signal=handles.calcium;
+elseif mode_selection == 2 % Voltage only
+    signal=handles.voltage;
+end
+    
 time=handles.time;
 thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
-[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(avesig, thres, mpd);
+[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(signal, thres, mpd);
 
 axes(handles.axes1)
-hold off
-plot(time,avesig)
-xlabel('Time (s)')
-ylabel('Fluorescence (AU)');
+%hold off
+%plot(time,signal)
+%xlim([0 max(time)])
+%xlabel('Time (s)')
+%ylabel('Fluorescence (AU)');
 hold on
 baseline=linspace(minimum, minimum, length(time));
 % peakavg=linspace(maximum, maximum, length(time));
@@ -594,38 +662,64 @@ hold off
 
 axes(handles.axes1)
 hold on
-plot(time(locsa),avesig(locsa),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
+plot(time(locsa),signal(locsa),'mo','Markersize',8,'MarkerFaceColor','m','MarkerEdgeColor','k');
 
 % Exporting data
 handles.text14.String=num2str(num_peaks);
-handles.locsa=locsa;
-handles.upstroke_locs=upstroke_locs;
-handles.t0_locs=t0_locs;
-handles.depV=depV;
-handles.minimum=minimum;
-handles.maximum=maximum;
 guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton6.Processing GO. Main Loop Here
 function summary=pushbutton6_Callback(hObject, eventdata, handles)
+clc
+
+mode_selection = get(handles.popupmenu2, 'Value');
+
+if mode_selection ==  1 % Dual
+    processCalcium(hObject, eventdata, handles)
+    processVoltage(hObject, eventdata, handles)
+elseif mode_selection == 2 % Voltage only
+    processVoltage(hObject, eventdata, handles)
+elseif mode_selection == 3 % Calcium only
+    processCalcium(hObject, eventdata, handles)
+end
+
+function processCalcium(hObject, eventdata, handles)
 % Loading in data
-locsa=handles.locsa;
-upstroke_locs=handles.upstroke_locs;
-t0_locs=handles.t0_locs;
-depV=handles.depV;
-avesig=handles.avesig;
+calcium=handles.calcium;
 time=handles.time;
 fps=handles.fps;
-minimum=handles.minimum;
-maximum=handles.maximum;
-
+thres=handles.edit1.Value;
+mpd=round(handles.edit2.Value);
+% Detect peaks in calcium signal
+[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(calcium, thres, mpd);
 axes(handles.axes1)
 hold on
-[Rtab,Mtab]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum);
-
-handles.Rtab=Rtab; % individual results
-handles.Mtab=Mtab; % mean results row
+% Proces the calcium signal
+type=0; % for calcium
+[CRtab,  CMtab]=process(locsa, upstroke_locs,t0_locs,depV,calcium,time,fps,minimum,maximum,type);
+handles.CRtab=CRtab; % individual results for calcium
+handles.CMtab=CMtab; % mean results row for calcium
 guidata(hObject,handles);
+
+function processVoltage(hObject, eventdata, handles)
+voltage=handles.voltage;
+time=handles.time;
+fps=handles.fps;
+thres=handles.edit1.Value;
+mpd=round(handles.edit2.Value);
+% Detect peaks in voltage signal
+[num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(voltage, thres, mpd);
+axes(handles.axes1)
+hold on
+plot(time,voltage,'r');
+xlim([0 max(time)])
+% Process the voltage signal
+type=1; % for voltage
+[VRtab,VMtab]=process(locsa, upstroke_locs,t0_locs,depV,voltage,time,fps,minimum,maximum,type);
+handles.VRtab=VRtab; % individual results for calcium
+handles.VMtab=VMtab; % mean results row for calcium
+guidata(hObject,handles);
+
 
 function edit12_Callback(hObject, eventdata, handles)
 % hObject    handle to edit12 (see GCBO)mean
@@ -675,11 +769,12 @@ end
 % --- Executes on button press in pushbutton8. EPOCH SELECTOR BUTTON
 function pushbutton8_Callback(hObject, eventdata, handles)
 % Make sure you plot in Frames first, before you pick the epoch.
-avesig=handles.avesig;
-time=1:1:length(avesig);
+calcium=handles.calcium;
+time=1:1:length(calcium);
 axes(handles.axes1)
 hold off
-plot(time,avesig)
+plot(time,calcium)
+xlim([min(time) max(time)])
 xlab='Frames';
 xlabel(xlab)
 ylabel('Fluorescence (AU)');
@@ -698,42 +793,104 @@ set(handles.edit13,'String',num2str(pt2));
 function pushbutton9_Callback(hObject, eventdata, handles)
 pt1=str2double(handles.edit12.String);
 pt2=str2double(handles.edit13.String);
-avesig=handles.avesig;
+LPF_enable = get(handles.checkbox8, 'Value'); % check if LPF is enabled
 time=handles.time;
+mode_selection = get(handles.popupmenu2, 'Value');
+Fc=str2double(handles.edit21.String); % Cutoff Frequency
+dt=handles.dt;
 
-epoch=avesig(pt1:pt2);
-axes(handles.axes1)
-hold off
-plot(time(pt1:pt2),epoch)
-xlabel('Time (sec)')
-ylabel('Fluorescence (AU)');
-set(handles.radiobutton10,'Value',1);
+if mode_selection ==  1 % Dual
+    calcium=handles.calcium;
+    epoch=calcium(pt1:pt2);
+    epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
+    voltage=handles.voltage;
+    v_epoch=voltage(pt1:pt2);
+    v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
+    handles.calcium=epoch;
+    handles.voltage=v_epoch;
+    handles.time=time(pt1:pt2);
+    guidata(hObject,handles);
+    axes(handles.axes1)
+    plotEpoch(v_epoch, pt1, pt2, time)
+    set(handles.radiobutton10,'Value',1);
 
 
-handles.avesig=epoch;
-handles.time=time(pt1:pt2);
-guidata(hObject,handles);
+elseif mode_selection == 2 % Voltage only
+    voltage=handles.voltage;
+    v_epoch=voltage(pt1:pt2);
+    v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
+    handles.voltage=v_epoch;
+    handles.time=time(pt1:pt2);
+    guidata(hObject,handles);
+    axes(handles.axes1)
+    plotEpoch(v_epoch, pt1, pt2, time)
+    set(handles.radiobutton10,'Value',1);
 
-% --- Executes on button press in pushbutton10. Open Results Variable
+
+elseif mode_selection == 3 % Calcium only
+    calcium=handles.calcium;
+    
+        if LPF_enable == true
+        Fs=1/dt;
+        % % FIR 50th order Filtering
+        % hb=100; %high band is 60 Hz
+        % or=50; %50th order
+        % a0=[1 1 0 0];
+        % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+        % b = firpm(or,f0,a0);
+        % a = 1;
+
+        % IIR 5th order Butterworth  LPF
+        n  = 5;    % Order
+        Wn=(Fc/(Fs/2));
+        [b,a] = butter(n,Wn);
+        pre_calcium=filtfilt(b,a,calcium);
+    else
+        pre_calcium=calcium;% skip preprocessing step
+    end
+      
+    
+    epoch=pre_calcium(pt1:pt2);
+    epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
+    handles.calcium=epoch;
+    handles.time=time(pt1:pt2);
+    guidata(hObject,handles);
+    axes(handles.axes1)
+    plotEpoch(epoch, pt1, pt2, time)
+    set(handles.radiobutton10,'Value',1);
+    
+end
+
+function plotEpoch(epoch, pt1, pt2, time)
+    hold off
+    plot(time(pt1:pt2),epoch)
+    xlim([time(pt1) time(pt2)])
+    xlabel('Time (sec)')
+    ylabel('Fluorescence (AU)');
+
+% --- Calcium Individual Results
 function pushbutton10_Callback(hObject, eventdata, handles)
-Rtab=handles.Rtab;
-assignin('base','Rtab',Rtab)
-openvar('Rtab')
+CRtab=handles.CRtab;
+assignin('base','CRtab',CRtab)
+openvar('CRtab')
 
-% hObject    handle to pushbutton10 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Calcium Mean Results
+function pushbutton17_Callback(hObject, eventdata, handles)
+CMtab=handles.CMtab;
+assignin('base','CMtab',CMtab)
+openvar('CMtab')
 
+% --- Voltage Individual Results
+function pushbutton24_Callback(hObject, eventdata, handles)
+VRtab=handles.VRtab;
+assignin('base','VRtab',VRtab)
+openvar('VRtab')
 
-
-function edit15_Callback(hObject, eventdata, handles)
-% hObject    handle to edit15 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit15 as text
-%        str2double(get(hObject,'String')) returns contents of edit15 as a double
-
+% --- Voltage Mean Results
+function pushbutton22_Callback(hObject, eventdata, handles)
+VMtab=handles.VMtab;
+assignin('base','VMtab',VMtab)
+openvar('VMtab')
 
 % --- Executes during object creation, after setting all properties.
 function edit15_CreateFcn(hObject, eventdata, handles)
@@ -802,7 +959,7 @@ guidata(hObject,handles)
 return
 
 function Untitled_6_Callback(hObject, eventdata, handles)
-[trace,dt]=txtopen;
+[trace,dt,fname]=txtopen;
 
 fps=1/dt;
 
@@ -824,7 +981,7 @@ set(handles.radiobutton10,'Value',1);
 
 handles.fps=fps;
 handles.dt=dt;
-handles.avesig=avesig;
+handles.calcium=avesig;
 handles.time=time;
 guidata(hObject,handles)
 
@@ -859,14 +1016,18 @@ thres=handles.edit1.Value;
 mpd=round(handles.edit2.Value);
 
 % What files do you want to load?
-%files=1:nFiles;
-files=[1,6:24]; % specify specific file vector
+files=1:42;
+%files=[32:40]; % specify specific file vector
 
 
 
-for filenum=files;     
+for filenum=files;   
     try
-        [~, data, fps, ~, ~, ~]=sifopen([pname, root,'_',num2str(filenum),'.sif']);
+        [ret, data, fps, ~, ~, ~]=sifopen([pname, root,'_',num2str(filenum),'.sif']);
+        if ret==0
+            break
+            disp('problem with locating file')
+        end
         dt=1/fps;
 
         [avesig,time,radi]=region(data,gr,gc,pr,pc,dt, maxrad, mode_selection);
@@ -881,19 +1042,18 @@ for filenum=files;
         hold on
         [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(avesig, thres, mpd);
         [~,~,mean_results]=process(locsa, upstroke_locs,t0_locs,depV,avesig,time,fps,minimum,maximum);
-        %pause
-
+        pause(0.5)
         batch_results(filenum,:)=mean_results;
         set(handles.text15,'String',num2str(filenum));
-    catch me
-        mean_results=[];
-        batch_results(filenum,:)=mean_results;
-        set(handles.text15,'String',num2str(filenum));
+    
+    catch   
+        batch_results(filenum,:)=zeros(size(mean_results));        
+        set(handles.text15,'String',num2str(filenum));          
     end
     
 end
 
-Btab=array2table(batch_results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','CaD80','CaD30d80','D_F0','F1_F0','PeakTimeDiff','FD_F0','LD_F0'});
+Btab=array2table(batch_results,'VariableNames',{'Vmax','UpTime90','TauFall','CaD30','APD80','CaD30d80','D_F0','F1_F0','CL','FD_F0','LD_F0'});
 handles.Btab=Btab; % batch results table with mean from each file
 guidata(hObject,handles);
 
@@ -906,16 +1066,17 @@ function advanced_Callback(hObject, eventdata, handles)
 
 function menu_andor_Callback(hObject, eventdata, handles)
 
-[~, data, fps, ~, fname,pname]=sifopen;
+[~, pdata, fps, ~, fname,pname]=sifopen;
 dt=1/fps;
+data=pdata(:,:,2:end); % Remove the first frame.
 
 imstd=transform_image(data);
 
 set(handles.text23,'String',num2str(dt));
 set(handles.text24,'String',num2str(1/dt));
-set(handles.text25,'String',fname);
+set(handles.text25,'String',[pname, fname]);
 
-axes(handles.axes3) 
+axes(handles.axes3)
 hold off
 imagesc(imstd);
 set(gca, 'XTick', []);
@@ -942,12 +1103,6 @@ for i=1:size(data,1)
 end
 
 
-% --- Executes on button press in pushbutton17. % MEAN RESULTS BUTTON
-function pushbutton17_Callback(hObject, eventdata, handles)
-Mtab=handles.Mtab;
-assignin('base','Mtab',Mtab)
-openvar('Mtab')
-
 
 % --- Executes on button press in pushbutton18. % BATCH RESULTS BUTTON
 function pushbutton18_Callback(hObject, eventdata, handles)
@@ -956,9 +1111,447 @@ assignin('base','Btab',Btab)
 openvar('Btab')
 
 
+% --- Executes during object creation, after setting all properties.
+function edit17_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit17 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
 
-% --- Executes on button press in pushbutton19.
-function pushbutton19_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton19 (see GCBO)
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function edit18_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit18 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit19_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit19 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+%% --- Executes on button press in Region Selector OK button VOLTAGE
+function pushbutton21_Callback(hObject, eventdata, handles)
+data=handles.data;
+imstd=handles.imstd;
+gr=handles.gr;
+gc=handles.gc;
+pr=str2double(handles.edit18.String);
+pc=str2double(handles.edit17.String);
+dt=handles.dt;
+maxrad=str2double(handles.edit19.String);
+dto=str2double(handles.edit24.String); %detrend polynomial order
+dt_enable = get(handles.checkbox11, 'Value'); % check if detrending is enabled.
+LPF_enable = get(handles.checkbox9, 'Value'); % check if LPF is enabled
+Fc=str2double(handles.edit22.String); % Cutoff Frequency
+
+mode_selection = 2; % This inverts the signal for voltage when choosing the region
+
+[avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection); %region plotter
+avesig=double(avesig);
+
+if dt_enable == true
+    opol=dto; %detrend polynomial order
+    time=time';
+    [p,~,mu] = polyfit(time(:),avesig(:),opol);
+    fy=polyval(p,time(:),[],mu);
+    d_voltage=avesig(:)-fy;
+else
+    d_voltage=avesig; %skip detrending step
+end
+
+if LPF_enable == true
+    Fs=1/dt;
+    % % FIR 50th order Filtering
+    % hb=100; %high band is 60 Hz
+    % or=50; %50th order
+    % a0=[1 1 0 0];
+    % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+    % b = firpm(or,f0,a0);
+    % a = 1;
+
+    % IIR 5th order Butterworth  LPF
+    n  = 5;    % Order
+    Wn=(Fc/(Fs/2));
+    [b,a] = butter(n,Wn);
+    pre_voltage=filtfilt(b,a,d_voltage);
+else
+    pre_voltage=d_voltage;% skip preprocessing step
+end
+
+voltage=double((pre_voltage-min(pre_voltage))/(max(pre_voltage)-min(pre_voltage))); % normalize
+
+axes(handles.axes1) 
+hold on
+plot(time(:),voltage,'r');
+xlabel('Time (s)')
+ylabel('Fluorescence (AU)');
+xlim([0 max(time)])
+set(handles.radiobutton10,'Value',1);
+
+axes(handles.axes3)
+imagesc(imstd);
+hold on
+plot(gc(radi), gr(radi), 'k.');
+axis image
+
+% Exporting variables
+handles.time=time;
+handles.voltage=voltage;
+guidata(hObject,handles);
+
+
+% PCL entered here to calculate the recommended lockout time.
+function edit20_Callback(hObject, eventdata, handles)
+fps=handles.fps;
+pcl=str2double(handles.edit20.String);
+
+%lockout time calculated
+lot_calc=(pcl/1000)*fps;
+set(handles.lot_rec,'String',num2str(floor(lot_calc)));
+
+
+% --- Executes during object creation, after setting all properties.
+function edit20_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit20 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton26.
+% Differential Results for Vm and Ca
+function pushbutton26_Callback(hObject, eventdata, handles)
+CRtab=handles.CRtab;
+VRtab=handles.VRtab;
+
+CaD80_APD80=CRtab.CaD80-VRtab.APD80;
+CaT_AP_actTime=CRtab.ActTime-VRtab.ActTime;
+Difftab=array2table([CaD80_APD80,CaT_AP_actTime],'VariableNames',{'CaD80_APD80','ActTimeDiff'});
+
+assignin('base','Difftab',Difftab)
+openvar('Difftab')
+
+
+% --- Executes on button press in checkbox8.
+function checkbox8_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox8
+
+
+% --- Executes on button press in checkbox9.
+function checkbox9_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox9
+
+
+
+function edit21_Callback(hObject, eventdata, handles)
+% hObject    handle to edit21 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit21 as text
+%        str2double(get(hObject,'String')) returns contents of edit21 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit21_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit21 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit22_Callback(hObject, eventdata, handles)
+% hObject    handle to edit22 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit22 as text
+%        str2double(get(hObject,'String')) returns contents of edit22 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit22_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit22 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function edit24_Callback(hObject, eventdata, handles)
+% hObject    handle to edit24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit24 as text
+%        str2double(get(hObject,'String')) returns contents of edit24 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit24_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit24 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox11.
+function checkbox11_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox11
+
+
+
+function edit23_Callback(hObject, eventdata, handles)
+% hObject    handle to edit23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit23 as text
+%        str2double(get(hObject,'String')) returns contents of edit23 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit23_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit23 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox10.
+function checkbox10_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox10
+
+
+% --- Executes on button press in pushbutton28.
+function pushbutton28_Callback(hObject, eventdata, handles)
+CRtab=handles.CRtab;
+VRtab=handles.VRtab;
+
+results(1,1)=mean(CRtab.CaD80-VRtab.APD80,1);
+results(1,2)=mean(CRtab.ActTime-VRtab.ActTime,1);
+results(2,1)=std(CRtab.CaD80-VRtab.APD80,1,1);
+results(2,2)=std(CRtab.ActTime-VRtab.ActTime,1,1);
+DiffMtab=array2table(results,'VariableNames',{'CaD80_APD80','ActTimeDiff'});
+
+assignin('base','DiffMtab',DiffMtab)
+openvar('DiffMtab')
+
+
+% --- Executes on selection change in listbox1.
+% File selection box
+function listbox1_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns listbox1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox1
+
+
+% --- Executes during object creation, after setting all properties.
+function listbox1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton30.
+% Change Folder Button under list box
+function pushbutton30_Callback(hObject, eventdata, handles)
+
+seed='/run/media/lab/Posnack-Heart/Mapping';
+seldirec = uigetdir(seed,'Select Image Directory');
+
+Infolder      = dir(seldirec);
+fileList = {Infolder(~[Infolder.isdir]).name};
+set(handles.listbox1,'Value',1); 
+set(handles.listbox1,'String',fileList)
+handles.seldirec=seldirec;
+guidata(hObject,handles);
+
+% --- Executes on button press in pushbutton32.
+% Load files from the listbox
+function pushbutton32_Callback(hObject, eventdata, handles)
+seldirec=handles.seldirec;
+
+contents = cellstr(get(handles.listbox1,'String'));
+fileSelect=contents{get(handles.listbox1,'Value')};
+source=[seldirec, '/', fileSelect];
+[path, name, ext]=fileparts(source);
+
+if ext == '.sif'
+    [~, pdata, fps, ~, fname,pname]=sifopen(source);
+    data=pdata(:,:,2:end); % Remove the first frame.
+    dt=1/fps;
+    handles.pname=pname; % we have to export the path name so that batch can use it later
+elseif    ext == '.nd2'
+    [data,dt]=nd2open(source);
+    fps=1/dt;
+elseif ext == '.txt'
+    [data,dt]=txtopen(source);
+    fps=1/dt;
+    avesig=data;
+    time=0:dt:length(avesig)*dt-dt;
+    axes(handles.axes1) 
+    hold off
+    axes(handles.axes1) 
+    hold off
+    plot(time,avesig);
+    xlabel('Time (s)')
+    ylabel('Fluorescence (AU)');
+    set(handles.radiobutton10,'Value',1);
+    handles.fps=fps;
+    handles.dt=dt;
+    handles.calcium=avesig;
+    handles.time=time;
+end
+
+imstd=transform_image(data);
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+set(handles.text25,'String',source);
+
+axes(handles.axes3)
+hold off
+imagesc(imstd);
+set(gca, 'XTick', []);
+set(gca, 'YTick', []);
+axis image;
+axis off;
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+guidata(hObject,handles)
+
+
+% --- Executes on selection change in popupmenu2.
+function popupmenu2_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu2
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton33.
+function pushbutton33_Callback(hObject, eventdata, handles)
+axes(handles.axes1) 
+cla
+
+
+% --------------------------------------------------------------------
+function tifmenu_Callback(hObject, eventdata, handles)
+[preData,fps]=tifopen;
+dt=1/fps;
+data=double(preData);
+imstd=zeros(size(data,1),size(data,2)); 
+for i=1:size(data,1)                                                
+    % In each column of each row
+    for j=1:size(data,2)                                                                                                                                   
+    % That point equals the standard deviation of all the frames in that same column and row index
+    imstd(i,j)=std(data(i,j,:));                                                                                                                         
+    end
+end
+axes(handles.axes3) 
+hold off
+imagesc(imstd);
+axis image;
+axis off;
+
+fps=1/dt;
+
+set(handles.text23,'String',num2str(dt));
+set(handles.text24,'String',num2str(1/dt));
+
+handles.imstd=imstd;
+handles.data=data;
+handles.dt=dt;
+handles.fps=fps;
+guidata(hObject,handles)
+% hObject    handle to tifmenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
