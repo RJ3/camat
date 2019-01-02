@@ -634,7 +634,7 @@ function pushbutton7_Callback(hObject, eventdata, handles)
 % What peaks should be detected?
 mode_selection = get(handles.popupmenu2, 'Value');
 
-if mode_selection == 1 || 3 % Dual or Calcium
+if mode_selection == ( 1 || 3 ) % Dual or Calcium
     signal=handles.calcium;
 elseif mode_selection == 2 % Voltage only
     signal=handles.voltage;
