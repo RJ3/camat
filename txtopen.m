@@ -1,15 +1,6 @@
-function [trace,dt,fname]=txtopen(source)
+function [trace,dt,fname]=txtopen
 
-seed='/run/media/lab/Seagate Expansion Drive/M7764-Nikon Eclipse Ti Data/Cell Imaging/Cells/hiPS-CM_Calcium/Raw Data/';
-
-switch nargin
-    case 0 % source was unspecified
-        [fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file',seed);
-        source=[pname,fname];    
-    case 1 % file source was specified
-        fname=[]; % these output vars will be blank, since source was specified
-        pname=[]; % these output vars will be blank, since source was specified
-end
+[fname,pname]=uigetfile({'*.txt'},'Select a TSV .txt file');
 
 
 delimiter = '\t';
@@ -19,10 +10,9 @@ startRow = 2;
 %   column6: double (%f)
 % For more information, see the TEXTSCAN documentation.
 formatSpec = '%*s %f %*s %*s %*s %f %[^\n\r]';
-% %*s is a string that gets skipped, %f is a float that gets read
 
 %% Open the text file.
-fileID = fopen(source,'r','n','UTF16-LE');
+fileID = fopen([pname, fname],'r','n','UTF16-LE');
 % Skip the BOM (Byte Order Mark).
 fseek(fileID, 2, 'bof');
 
@@ -45,8 +35,4 @@ fclose(fileID);
 time = dataArray{:, 1};
 trace = dataArray{:,2};
 
-totalTime=time(end,1)-time(1,1);
-nImages=length(time(:,1));
-dt=totalTime/nImages;
-
-%dt=time(2,1)-time(1,1);
+dt=time(2,1)-time(1,1);
