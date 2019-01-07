@@ -675,8 +675,9 @@ clc
 mode_selection = get(handles.popupmenu2, 'Value');
 
 if mode_selection ==  1 % Dual
-    processCalcium(hObject, eventdata, handles)
-    processVoltage(hObject, eventdata, handles)
+  processVoltage(hObject, eventdata, handles)
+  processCalcium(hObject, eventdata, handles)
+   
 elseif mode_selection == 2 % Voltage only
     processVoltage(hObject, eventdata, handles)
 elseif mode_selection == 3 % Calcium only
