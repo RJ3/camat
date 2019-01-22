@@ -22,7 +22,7 @@ function varargout = camat(varargin)
 
 % Edit the above text to modify the response to help camat
 
-% Last Modified by GUIDE v2.5 07-Aug-2018 08:59:19
+% Last Modified by GUIDE v2.5 18-Jan-2019 14:04:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -459,7 +459,6 @@ Fc=str2double(handles.edit21.String); % Cutoff Frequency
 mode_selection = 1;
 
 [avesig,time,radi]=region(data,gr,gc,pr,pc,dt,maxrad,mode_selection); %region plotter
-
 avesig=double(avesig);
 
 if dt_enable == true
@@ -491,7 +490,8 @@ else
     pre_calcium=d_calcium;% skip preprocessing step
 end
 
-calcium=double((pre_calcium-min(pre_calcium))/(max(pre_calcium)-min(pre_calcium))); %normalize
+% Print calcium values
+calcium=double((pre_calcium-min(pre_calcium))/(max(pre_calcium)-min(pre_calcium))) %normalize
 
 axes(handles.axes1) 
 hold off
@@ -509,7 +509,7 @@ axis image
 
 % Exporting variables
 handles.time=time;
-handles.calcium=calcium;
+handles.calcium=calcium
 guidata(hObject,handles);
 
 
@@ -634,7 +634,7 @@ function pushbutton7_Callback(hObject, eventdata, handles)
 % What peaks should be detected?
 mode_selection = get(handles.popupmenu2, 'Value');
 
-if mode_selection == ( 1 || 3 )% Dual or Calcium
+if mode_selection == 1 || 3 % Dual or Calcium
     signal=handles.calcium;
 elseif mode_selection == 2 % Voltage only
     signal=handles.voltage;
@@ -675,9 +675,8 @@ clc
 mode_selection = get(handles.popupmenu2, 'Value');
 
 if mode_selection ==  1 % Dual
-  processVoltage(hObject, eventdata, handles)
-  processCalcium(hObject, eventdata, handles)
-   
+    processCalcium(hObject, eventdata, handles)
+    processVoltage(hObject, eventdata, handles)
 elseif mode_selection == 2 % Voltage only
     processVoltage(hObject, eventdata, handles)
 elseif mode_selection == 3 % Calcium only
@@ -712,7 +711,7 @@ mpd=round(handles.edit2.Value);
 [num_peaks, locsa, upstroke_locs, t0_locs, depV, minimum, maximum, amp]=peak_detect(voltage, thres, mpd);
 axes(handles.axes1)
 hold on
-plot(time,voltage,'r');
+plot(time,voltage,'r')
 xlim([0 max(time)])
 % Process the voltage signal
 type=1; % for voltage
@@ -792,52 +791,109 @@ set(handles.edit13,'String',num2str(pt2));
 
 % --- Executes on button press in pushbutton9. EPOCH OK BUTTON
 function pushbutton9_Callback(hObject, eventdata, handles)
-pt1=str2double(handles.edit12.String);
-pt2=str2double(handles.edit13.String);
-time=handles.time;
-mode_selection = get(handles.popupmenu2, 'Value');
+    pt1=str2double(handles.edit12.String);
+    pt2=str2double(handles.edit13.String);
+    LPF_enable = get(handles.checkbox8, 'Value'); % check if LPF is enabled
+    time=handles.time;
+    mode_selection = get(handles.popupmenu2, 'Value');
+    Fc=str2double(handles.edit21.String); % Cutoff Frequency
+    dt=handles.dt;
 
-if mode_selection ==  1 % Dual
-    calcium=handles.calcium;
-    epoch=calcium(pt1:pt2);
-    epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
-    voltage=handles.voltage;
-    v_epoch=voltage(pt1:pt2);
-    v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
-    handles.calcium=epoch;
-    handles.voltage=v_epoch;
-    handles.time=time(pt1:pt2);
-    guidata(hObject,handles);
-    axes(handles.axes1)
-    plotEpoch(v_epoch, pt1, pt2, time)
-    set(handles.radiobutton10,'Value',1);
+    if mode_selection ==  1 % Dual
+        calcium=handles.calcium;
+        voltage=handles.voltage;
+        if LPF_enable == true
+            Fs=1/dt;
+            % % FIR 50th order Filtering
+            % hb=100; %high band is 60 Hz
+            % or=50; %50th order
+            % a0=[1 1 0 0];
+            % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+            % b = firpm(or,f0,a0);
+            % a = 1;
+
+            % IIR 5th order Butterworth  LPF
+            n  = 5;    % Order
+            Wn=(Fc/(Fs/2));
+            [b,a] = butter(n,Wn);
+            pre_calcium=filtfilt(b,a,calcium);
+            pre_voltage=filtfilt(b,a,voltage);
+        else
+            pre_calcium=calcium;% skip preprocessing step
+            pre_voltage=voltage;% skip preprocessing step
+        end
+        epoch=pre_calcium(pt1:pt2);
+        epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
+        v_epoch=pre_voltage(pt1:pt2);
+        v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
+        handles.calcium=epoch;
+        handles.voltage=v_epoch;
+        handles.time=time(pt1:pt2);
+        guidata(hObject,handles);
+        axes(handles.axes1)
+        plotEpoch(v_epoch, pt1, pt2, time)
+        set(handles.radiobutton10,'Value',1);
+
+    elseif mode_selection == 2 % Voltage only
+        voltage=handles.voltage;
+        if LPF_enable == true
+            Fs=1/dt;
+            % % FIR 50th order Filtering
+            % hb=100; %high band is 60 Hz
+            % or=50; %50th order
+            % a0=[1 1 0 0];
+            % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+            % b = firpm(or,f0,a0);
+            % a = 1;
+
+            % IIR 5th order Butterworth  LPF
+            n  = 5;    % Order
+            Wn=(Fc/(Fs/2));
+            [b,a] = butter(n,Wn);
+            pre_voltage=filtfilt(b,a,voltage);
+        else
+            pre_voltage=voltage;% skip preprocessing step
+        end
+        v_epoch=pre_voltage(pt1:pt2);
+        v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch))
+        handles.voltage=v_epoch;
+        handles.time=time(pt1:pt2);
+        guidata(hObject,handles);
+        axes(handles.axes1)
+        plotEpoch(v_epoch, pt1, pt2, time)
+        set(handles.radiobutton10,'Value',1);
 
 
-elseif mode_selection == 2 % Voltage only
-    voltage=handles.voltage;
-    v_epoch=voltage(pt1:pt2);
-    v_epoch=(v_epoch-min(v_epoch))/(max(v_epoch)-min(v_epoch));
-    handles.voltage=v_epoch;
-    handles.time=time(pt1:pt2);
-    guidata(hObject,handles);
-    axes(handles.axes1)
-    plotEpoch(v_epoch, pt1, pt2, time)
-    set(handles.radiobutton10,'Value',1);
+    elseif mode_selection == 3 % Calcium only
+        calcium=handles.calcium;
+        if LPF_enable == true
+            Fs=1/dt;
+            % % FIR 50th order Filtering
+            % hb=100; %high band is 60 Hz
+            % or=50; %50th order
+            % a0=[1 1 0 0];
+            % f0=[0 hb hb*1.25 Fs/2]./(Fs/2);
+            % b = firpm(or,f0,a0);
+            % a = 1;
 
-
-elseif mode_selection == 3 % Calcium only
-    calcium=handles.calcium;
-    epoch=calcium(pt1:pt2);
-    epoch=(epoch-min(epoch))/(max(epoch)-min(epoch));
-    handles.calcium=epoch;
-    handles.time=time(pt1:pt2);
-    guidata(hObject,handles);
-    axes(handles.axes1)
-    plotEpoch(epoch, pt1, pt2, time)
-    set(handles.radiobutton10,'Value',1);
-
-
-end
+            % IIR 5th order Butterworth  LPF
+            n  = 5;    % Order
+            Wn=(Fc/(Fs/2));
+            [b,a] = butter(n,Wn);
+            pre_calcium=filtfilt(b,a,calcium);
+        else
+            pre_calcium=calcium;% skip preprocessing step
+        end
+        epoch=pre_calcium(pt1:pt2);
+        epoch=(epoch-min(epoch))/(max(epoch)-min(epoch))
+        handles.calcium=epoch;
+        handles.time=time(pt1:pt2);
+        guidata(hObject,handles);
+        axes(handles.axes1)
+        plotEpoch(epoch, pt1, pt2, time)
+        set(handles.radiobutton10,'Value',1);
+    
+    end
 
 function plotEpoch(epoch, pt1, pt2, time)
     hold off
@@ -937,7 +993,7 @@ guidata(hObject,handles)
 return
 
 function Untitled_6_Callback(hObject, eventdata, handles)
-[trace,dt]=txtopen;
+[trace,dt,fname]=txtopen;
 
 fps=1/dt;
 
@@ -959,7 +1015,7 @@ set(handles.radiobutton10,'Value',1);
 
 handles.fps=fps;
 handles.dt=dt;
-handles.avesig=avesig;
+handles.calcium=avesig;
 handles.time=time;
 guidata(hObject,handles)
 
@@ -1176,7 +1232,9 @@ else
     pre_voltage=d_voltage;% skip preprocessing step
 end
 
+% Print voltage values, DM
 voltage=double((pre_voltage-min(pre_voltage))/(max(pre_voltage)-min(pre_voltage))); % normalize
+results=horzcat([time(:) voltage])
 
 axes(handles.axes1) 
 hold on
@@ -1194,7 +1252,7 @@ axis image
 
 % Exporting variables
 handles.time=time;
-handles.voltage=voltage;
+handles.voltage=voltage
 guidata(hObject,handles);
 
 
@@ -1422,21 +1480,34 @@ seldirec=handles.seldirec;
 contents = cellstr(get(handles.listbox1,'String'));
 fileSelect=contents{get(handles.listbox1,'Value')};
 source=[seldirec, '/', fileSelect];
+handles.filename=fileSelect;
 [path, name, ext]=fileparts(source);
 
-if ext == '.sif'
+if strcmpi(ext, '.sif') || strcmpi(ext, '.sifx')
     [~, pdata, fps, ~, fname,pname]=sifopen(source);
     data=pdata(:,:,2:end); % Remove the first frame.
     dt=1/fps;
     handles.pname=pname; % we have to export the path name so that batch can use it later
-elseif    ext == '.nd2'
+elseif strcmpi(ext, '.nd2')
     [data,dt]=nd2open(source);
     fps=1/dt;
-elseif ext == '.tif'
-    [pdata, fps, fname, pname]=tifopen(source);
-    dt=1/fps;
-    handles.pname=pname; % we have to export the path name so that batch can use it later
-    data=double(pdata);
+elseif strcmpi(ext, '.txt')
+    [data,dt]=txtopen(source);
+    fps=1/dt;
+    avesig=data;
+    time=0:dt:length(avesig)*dt-dt;
+    axes(handles.axes1) 
+    hold off
+    axes(handles.axes1) 
+    hold off
+    plot(time,avesig);
+    xlabel('Time (s)')
+    ylabel('Fluorescence (AU)');
+    set(handles.radiobutton10,'Value',1);
+    handles.fps=fps;
+    handles.dt=dt;
+    handles.calcium=avesig;
+    handles.time=time;
 end
 
 imstd=transform_image(data);
@@ -1521,3 +1592,59 @@ guidata(hObject,handles)
 % hObject    handle to tifmenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_exportcsv.
+function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
+    % hObject    handle to pushbutton_exportcsv (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    if isempty(handles.voltage) && isempty(handles.calcium)
+        msgbox('No wave to export. Please use "Display Wave" button to select pixels on movie screen.','Icon','help')
+    else
+        mode_selection = get(handles.popupmenu2, 'Value');
+        if mode_selection ==  1 % Dual
+            handles.edit8.String
+            handleCXY = strcat('Vx', handles.edit17.String, 'Vy', handles.edit18.String,...
+                'Vr', handles.txt_maxrad.String)
+            handleVXY = strcat('Cx', handles.edit8.String,'Cy', handles.edit9.String,...
+                'Cr', handles.edit19.String)
+            handleXY = strcat(handleVXY, handleCXY)
+            signalData = [handles.voltage handles.calcium];
+        elseif mode_selection == 2 % Voltage only
+            handleXY = strcat('x',handles.edit17.String,'y',handles.edit18.String,...
+                'r', handles.txt_maxrad.String)
+            signalData = [handles.voltage];
+        elseif mode_selection == 3 % Calcium only
+            handleXY = strcat('x',handles.edit8.String,'y',handles.edit9.String,...
+                'Vr', handles.edit19.String)
+            signalData = [handles.calcium];
+        end
+        % User prompt for input to create csv
+        prompt1 = {'Save current signal plot as CSV?'};
+        dlg_title1 = 'Save signal CSV';
+        num_lines1 = [1 60];
+        % Uses directory chosen for image sources
+        direc=handles.seldirec;
+        file = strtok(handles.filename,'.');    % Get filename without extension 
+        file = strcat(file,handleXY);    % Add marker coordinate to filename
+        def1 =  {strcat(direc,'/Signals/',file,'.csv')}
+        answer = inputdlg(prompt1,dlg_title1,num_lines1,def1);
+        % process user inputs
+        if isempty(answer)      % cancel save if user clicks "cancel"
+            return
+        end
+        filename = answer{1};
+        filenameTemp = strsplit(filename,'.');
+        % Add time and signal arrays into a final 2-D array
+        time = flip(rot90(handles.time));
+        csvData = [time signalData];
+
+        % create the Signals folder if it doesn't exist already.
+        newSubFolder = strcat(direc,'/Signals/');
+        if ~exist(newSubFolder, 'dir')
+          mkdir(newSubFolder);
+        end
+        % CSV columns: time (seconds), voltage values, calcium values
+        csvwrite(filename,csvData);
+    end
