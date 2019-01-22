@@ -490,8 +490,7 @@ else
     pre_calcium=d_calcium;% skip preprocessing step
 end
 
-% Print calcium values
-calcium=double((pre_calcium-min(pre_calcium))/(max(pre_calcium)-min(pre_calcium))) %normalize
+calcium=double((pre_calcium-min(pre_calcium))/(max(pre_calcium)-min(pre_calcium))); %normalize
 
 axes(handles.axes1) 
 hold off
@@ -509,7 +508,7 @@ axis image
 
 % Exporting variables
 handles.time=time;
-handles.calcium=calcium
+handles.calcium=calcium;
 guidata(hObject,handles);
 
 
@@ -1102,7 +1101,6 @@ function menu_andor_Callback(hObject, eventdata, handles)
 [~, pdata, fps, ~, fname,pname]=sifopen;
 dt=1/fps;
 data=pdata(:,:,2:end); % Remove the first frame.
-display(pdata(:,:,2))
 imstd=transform_image(data);
 
 set(handles.text23,'String',num2str(dt));
@@ -1233,9 +1231,7 @@ else
     pre_voltage=d_voltage;% skip preprocessing step
 end
 
-% Print voltage values, DM
 voltage=double((pre_voltage-min(pre_voltage))/(max(pre_voltage)-min(pre_voltage))); % normalize
-results=horzcat([time(:) voltage])
 
 axes(handles.axes1) 
 hold on
@@ -1253,7 +1249,7 @@ axis image
 
 % Exporting variables
 handles.time=time;
-handles.voltage=voltage
+handles.voltage=voltage;
 guidata(hObject,handles);
 
 
@@ -1493,7 +1489,6 @@ elseif strcmpi(ext, '.sifx')    % TODO sifx does not open from listbox, imstd no
     [~, pdata, fps, ~, fname,pname]=sifopen(source, ext);
     dt=1/fps;
     data=pdata(:,:,2:end); % Remove the first frame.
-    display(pdata(:,:,2))
     imstd=transform_image(data);
     handles.filename=fname;
     handles.pname=pname; % we have to export the path name so that batch can use it later
@@ -1607,7 +1602,7 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
     % hObject    handle to pushbutton_exportcsv (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % handles    structure with handles and user data (see GUIDATA)
-    time = handles.time;
+    time = flip(rot90(handles.time));
     if isempty(handles.voltage) && isempty(handles.calcium)
         msgbox('No wave to export. Please use "Display Wave" button to select pixels on movie screen.','Icon','help')
     else
@@ -1640,7 +1635,7 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
         direc=handles.seldirec;
         file = strtok(handles.filename,'.');    % Get filename without extension 
         file = strcat(file,handleXY);    % Add marker coordinate to filename
-        def1 =  {strcat(direc,'/Signals/',file,'.csv')}
+        def1 =  {strcat(direc,'Signals/',file,'.csv')};
         answer = inputdlg(prompt1,dlg_title1,num_lines1,def1);
         % process user inputs
         if isempty(answer)      % cancel save if user clicks "cancel"
@@ -1650,7 +1645,7 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
         filenameTemp = strsplit(filename,'.');
 
         % create the Signals folder if it doesn't exist already.
-        newSubFolder = strcat(direc,'/Signals/');
+        newSubFolder = strcat(direc,'Signals/');
         if ~exist(newSubFolder, 'dir')
           mkdir(newSubFolder);
         end
