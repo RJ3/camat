@@ -1099,11 +1099,10 @@ function advanced_Callback(hObject, eventdata, handles)
 % ----------------ANDOR SIF OPEN-------------------------------------------
 
 function menu_andor_Callback(hObject, eventdata, handles)
-
 [~, pdata, fps, ~, fname,pname]=sifopen;
 dt=1/fps;
 data=pdata(:,:,2:end); % Remove the first frame.
-
+display(pdata(:,:,2))
 imstd=transform_image(data);
 
 set(handles.text23,'String',num2str(dt));
@@ -1122,6 +1121,8 @@ handles.imstd=imstd;
 handles.data=data;
 handles.dt=dt;
 handles.fps=fps;
+handles.seldirec=pname;
+handles.filename=fname;
 handles.pname=pname; % we have to export the path name so that batch can use it later
 guidata(hObject,handles)
 
@@ -1483,10 +1484,18 @@ source=[seldirec, '/', fileSelect];
 handles.filename=fileSelect;
 [path, name, ext]=fileparts(source);
 
-if strcmpi(ext, '.sif') || strcmpi(ext, '.sifx')
-    [~, pdata, fps, ~, fname,pname]=sifopen(source);
-    data=pdata(:,:,2:end); % Remove the first frame.
+if strcmpi(ext, '.sif')
+    [~, pdata, fps, ~, fname,pname]=sifopen(source, ext);
     dt=1/fps;
+    data=pdata(:,:,2:end); % Remove the first frame.
+    handles.pname=pname; % we have to export the path name so that batch can use it later
+elseif strcmpi(ext, '.sifx')    % TODO sifx does not open from listbox, imstd not right
+    [~, pdata, fps, ~, fname,pname]=sifopen(source, ext);
+    dt=1/fps;
+    data=pdata(:,:,2:end); % Remove the first frame.
+    display(pdata(:,:,2))
+    imstd=transform_image(data);
+    handles.filename=fname;
     handles.pname=pname; % we have to export the path name so that batch can use it later
 elseif strcmpi(ext, '.nd2')
     [data,dt]=nd2open(source);
@@ -1510,7 +1519,6 @@ elseif strcmpi(ext, '.txt')
     handles.time=time;
 end
 
-imstd=transform_image(data);
 
 set(handles.text23,'String',num2str(dt));
 set(handles.text24,'String',num2str(1/dt));
@@ -1599,26 +1607,30 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
     % hObject    handle to pushbutton_exportcsv (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % handles    structure with handles and user data (see GUIDATA)
+    time = handles.time;
     if isempty(handles.voltage) && isempty(handles.calcium)
         msgbox('No wave to export. Please use "Display Wave" button to select pixels on movie screen.','Icon','help')
     else
         mode_selection = get(handles.popupmenu2, 'Value');
         if mode_selection ==  1 % Dual
-            handles.edit8.String
-            handleCXY = strcat('Vx', handles.edit17.String, 'Vy', handles.edit18.String,...
-                'Vr', handles.txt_maxrad.String)
-            handleVXY = strcat('Cx', handles.edit8.String,'Cy', handles.edit9.String,...
-                'Cr', handles.edit19.String)
-            handleXY = strcat(handleVXY, handleCXY)
-            signalData = [handles.voltage handles.calcium];
-        elseif mode_selection == 2 % Voltage only
-            handleXY = strcat('x',handles.edit17.String,'y',handles.edit18.String,...
-                'r', handles.txt_maxrad.String)
-            signalData = [handles.voltage];
-        elseif mode_selection == 3 % Calcium only
-            handleXY = strcat('x',handles.edit8.String,'y',handles.edit9.String,...
+            handleVXY = strcat('Vx', handles.edit17.String, 'Vy', handles.edit18.String,...
                 'Vr', handles.edit19.String)
-            signalData = [handles.calcium];
+            handleCXY = strcat('Cx', handles.edit8.String,'Cy', handles.edit9.String,...
+                'Cr', handles.txt_maxrad.String)
+            handleXY = strcat(handleVXY, handleCXY)
+            % Add time and signal arrays into a table, 
+            T = table(time, handles.voltage, handles.calcium);
+            T.Properties.VariableNames={'Time', 'Voltage', 'Calcium'};
+        elseif mode_selection == 2 % Voltage only
+            handleXY = strcat('Vx',handles.edit17.String,'y',handles.edit18.String,...
+                'r', handles.txt_maxrad.String)
+            T = table(time, handles.voltage);
+            T.Properties.VariableNames={'Time', 'Voltage'};
+        elseif mode_selection == 3 % Calcium only
+            handleXY = strcat('Cx',handles.edit8.String,'y',handles.edit9.String,...
+                'Vr', handles.edit19.String)
+            T = table(time, handles.calcium);
+            T.Properties.VariableNames={'Time', 'Calcium'};
         end
         % User prompt for input to create csv
         prompt1 = {'Save current signal plot as CSV?'};
@@ -1636,9 +1648,6 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
         end
         filename = answer{1};
         filenameTemp = strsplit(filename,'.');
-        % Add time and signal arrays into a final 2-D array
-        time = flip(rot90(handles.time));
-        csvData = [time signalData];
 
         % create the Signals folder if it doesn't exist already.
         newSubFolder = strcat(direc,'/Signals/');
@@ -1646,5 +1655,6 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
           mkdir(newSubFolder);
         end
         % CSV columns: time (seconds), voltage values, calcium values
-        csvwrite(filename,csvData);
+        writetable(T, filename, 'Delimiter',',')
+%         csvwrite(filename, cell2mat(csv));
     end

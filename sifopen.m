@@ -1,4 +1,4 @@
-function [ret, data3, fps, gain,fname,pname]=sifopen(source)
+function [ret, data3, fps, gain,fname,pname]=sifopen(source, ext)
 %{
 [ret, data, fps, gain]=sifopen99(source) where source is a string 
 containing Andor .sif file name ret will return 0 if error occurs, 1 if ok. 
@@ -23,19 +23,27 @@ seed='E:\Zyla\';
 switch nargin
     case 0 % source was unspecified
         [fname,pname,filterindex]=uigetfile({'*.sif';'*.sifx'},'Select an Andor file',seed);
-        source=[pname,fname];    
+        source=[pname,fname];
     case 1 % file source was specified
         fname=[]; % these output vars will be blank, since source was specified
         pname=[]; % these output vars will be blank, since source was specified
         filterindex=1; %source only works for .SIF for now.
+    case 2 % file source and ext were specified
+        fname=[]; % these output vars will be blank, since source was specified
+        pname=[]; % these output vars will be blank, since source was specified
+        if strcmpi(ext, '.sif')
+            filterindex = 1;
+        elseif strcmpi(ext, '.sifx')
+            filterindex = 2;
+        end
 end
 
 
 
 rc=atsif_readfromfile(source);
 if (rc == 22002)
-%     disp('SIF File Found')
     if filterindex == 1 % Normal andor .SIF selected
+        disp('SIF selected')
         [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
@@ -53,8 +61,9 @@ if (rc == 22002)
                     gain=str2double(sgain);
                  end
             data3=reshape(data, (right-left+1)/hBin, (top-bottom+1)/vBin, noframes);
-            end 
+        end 
     elseif filterindex == 2 % Zyla .SIFX selected
+        disp('SIFX selected')
         [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
