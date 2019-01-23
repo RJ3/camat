@@ -1602,7 +1602,11 @@ function pushbutton_exportcsv_Callback(hObject, eventdata, handles)
     % hObject    handle to pushbutton_exportcsv (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % handles    structure with handles and user data (see GUIDATA)
-    time = flip(rot90(handles.time));
+    if isrow(handles.time)
+        time = flip(rot90(handles.time));
+    else
+        time = handles.time;
+    end
     if isempty(handles.voltage) && isempty(handles.calcium)
         msgbox('No wave to export. Please use "Display Wave" button to select pixels on movie screen.','Icon','help')
     else
