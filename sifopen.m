@@ -1,4 +1,4 @@
-function [ret, data3, fps, gain,fname,pname]=sifopen(source)
+function [ret, data3, fps, gain,fname,pname]=sifopen(source, ext)
 %{
 [ret, data, fps, gain]=sifopen99(source) where source is a string 
 containing Andor .sif file name ret will return 0 if error occurs, 1 if ok. 
@@ -23,19 +23,27 @@ seed='E:\Zyla\';
 switch nargin
     case 0 % source was unspecified
         [fname,pname,filterindex]=uigetfile({'*.sif';'*.sifx'},'Select an Andor file',seed);
-        source=[pname,fname];    
+        source=[pname,fname];
     case 1 % file source was specified
         fname=[]; % these output vars will be blank, since source was specified
         pname=[]; % these output vars will be blank, since source was specified
         filterindex=1; %source only works for .SIF for now.
+    case 2 % file source and ext were specified
+        fname=[]; % these output vars will be blank, since source was specified
+        pname=[]; % these output vars will be blank, since source was specified
+        if strcmpi(ext, '.sif')
+            filterindex = 1;
+        elseif strcmpi(ext, '.sifx')
+            filterindex = 2;
+        end
 end
 
 
 
 rc=atsif_readfromfile(source);
 if (rc == 22002)
-%     disp('SIF File Found')
     if filterindex == 1 % Normal andor .SIF selected
+        disp('.SIF loading...')
         [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
@@ -53,30 +61,32 @@ if (rc == 22002)
                     gain=str2double(sgain);
                  end
             data3=reshape(data, (right-left+1)/hBin, (top-bottom+1)/vBin, noframes);
-            end 
+        end      
+        disp('DONE loading .SIF...')
     elseif filterindex == 2 % Zyla .SIFX selected
+        disp('.SIFX selected')
         [~,loaded] = atsif_isloaded();
         if loaded
             %signal=0, ref=1, backgd=2, 3=source, 4=live;
             signal=0;            
             [~,present]=atsif_isdatasourcepresent(signal);    
-                 if present
-                    ret=1;
-                    [~,KCT]=atsif_getpropertyvalue(signal,'KineticCycleTime');
-                    fps=1/str2double(KCT);
-                    [~,noframes]=atsif_getnumberframes(signal);
-                    [~,size]=atsif_getframesize(signal);
-                    [~,left,bottom,right,top,hBin,vBin]=atsif_getsubimageinfo(signal,0);                    
-                    [~,sgain]=atsif_getpropertyvalue(signal,'PreAmplifierGain');
-                    gain=str2double(sgain);
-                    data3=zeros((right-left+1)/hBin,(top-bottom+1)/vBin,noframes);
-                    for fn=0:1:noframes-1
-                        [~,data]=atsif_getframe(signal, fn,size);
-                        data3(:,:,fn+1)=reshape(data, (right-left+1)/hBin,(top-bottom+1)/vBin); % 
-                    end
-
-                 end                
-        end  
+             if present
+                ret=1;
+                [~,KCT]=atsif_getpropertyvalue(signal,'KineticCycleTime');
+                fps=1/str2double(KCT);
+                [~,noframes]=atsif_getnumberframes(signal);
+                [~,size]=atsif_getframesize(signal);
+                [~,left,bottom,right,top,hBin,vBin]=atsif_getsubimageinfo(signal,0);                    
+                [~,sgain]=atsif_getpropertyvalue(signal,'PreAmplifierGain');
+                gain=str2double(sgain);
+                data3=zeros((right-left+1)/hBin,(top-bottom+1)/vBin,noframes);
+                for fn=0:1:noframes-1
+                    [~,data]=atsif_getframe(signal, fn,size);
+                    data3(:,:,fn+1)=reshape(data, (right-left+1)/hBin,(top-bottom+1)/vBin); % 
+                end
+             end
+        disp('DONE loading .SIFX...')     
+        end
     end
     atsif_closefile();
 end     
