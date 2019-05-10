@@ -8,6 +8,16 @@ as many filetypes and datatypes as possible. Currently, work has been done to su
 txt files for both calcium and voltage maps. See the homepage http://www.cardiacmap.com for more information, or
 contact the author at raf @ website.
 
+Dependencies:
+- MATLAB  
+- Signal Processing Toolbox  
+- Curve Fitting Toolbox  
+- System Identification Toolbox  
+- Optimization Toolbox  
+- Simulink Control Design  
+- Statistics and Machine Learning Toolbox  
+- Computer Vision System Toolbox  
+
 The usage of this software can be cited with:
 
 Jaimes, R. 3rd, Walton, R. D., Pasdois, P., Bernus, O., Efimov, I. R., & Kay, M. W. (2016). A technical review of optical mapping of intracellular calcium within myocardial tissue. American Journal of Physiology - Heart and Circulatory Physiology, 310(11), H1388–H1401. http://doi.org/10.1152/ajpheart.00665.2015
