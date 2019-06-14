@@ -1,0 +1,6 @@
+[submodule "stackin"]
+	path = stackin
+	url = https://github.com/RJ3/stackin.git
+[submodule "bfmatlab"]
+	path = bfmatlab
+	url = https://github.com/ome/bio-formats-matlab/
